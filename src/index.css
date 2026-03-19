@@ -1,0 +1,78 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {
+  --paper: oklch(0.97 0.02 80);
+  --paper-deep: oklch(0.93 0.03 78);
+  --panel: oklch(0.985 0.015 85);
+  --ink: oklch(0.28 0.03 45);
+  --ink-muted: oklch(0.42 0.03 45);
+  --ink-soft: oklch(0.56 0.025 58);
+  --line: oklch(0.82 0.02 74);
+  --line-strong: oklch(0.62 0.03 55);
+  --tone-todo: oklch(0.74 0.09 78);
+  --tone-progress: oklch(0.7 0.11 160);
+  --tone-done: oklch(0.77 0.08 110);
+  --tone-high: oklch(0.66 0.17 32);
+  --tone-medium: oklch(0.72 0.12 72);
+  --tone-low: oklch(0.64 0.05 190);
+  --shadow-soft: 0 18px 42px rgba(75, 52, 19, 0.08);
+  --shadow-card: 0 12px 22px rgba(75, 52, 19, 0.08);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Manrope', 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
+  line-height: 1.45;
+  font-weight: 500;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(184, 140, 87, 0.22), transparent 32%),
+    radial-gradient(circle at top right, rgba(86, 145, 116, 0.16), transparent 28%),
+    linear-gradient(180deg, var(--paper), var(--paper-deep));
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(87, 66, 39, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(87, 66, 39, 0.025) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 72%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+#root {
+  width: min(100%, 1600px);
+  margin: 0 auto;
+  padding: clamp(1rem, 2vw, 2rem);
+}
