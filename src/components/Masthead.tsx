@@ -1,33 +1,33 @@
 type MastheadProps = {
+  captureCount: number
   openCount: number
-  dueSoonCount: number
-  doneCount: number
+  urgentCount: number
 }
 
-function Masthead({ openCount, dueSoonCount, doneCount }: MastheadProps) {
+function Masthead({ captureCount, openCount, urgentCount }: MastheadProps) {
   return (
     <header className="masthead">
       <div className="masthead-copy">
-        <p className="eyebrow">To Do first. Kanban second.</p>
-        <h1>Keep the board honest by letting the task lead.</h1>
+        <p className="eyebrow">Capture first. Commit second.</p>
+        <h1>Develop messy intent before it becomes execution drag.</h1>
         <p className="intro">
-          Capture work fast, move only what deserves focus, and keep completion
-          easier than choreography.
+          Keep raw ideas in the inbox, let AI sharpen what matters, and only
+          then promote work into the board.
         </p>
       </div>
 
       <div className="signal-panel">
         <article>
+          <span>{captureCount}</span>
+          <p>waiting in inbox</p>
+        </article>
+        <article>
           <span>{openCount}</span>
           <p>active loops</p>
         </article>
         <article>
-          <span>{dueSoonCount}</span>
-          <p>due within 72h</p>
-        </article>
-        <article>
-          <span>{doneCount}</span>
-          <p>closed and visible</p>
+          <span>{urgentCount}</span>
+          <p>urgent dates</p>
         </article>
       </div>
     </header>

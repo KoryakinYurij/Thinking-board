@@ -17,6 +17,10 @@
   --tone-low: oklch(0.64 0.05 190);
   --shadow-soft: 0 18px 42px rgba(75, 52, 19, 0.08);
   --shadow-card: 0 12px 22px rgba(75, 52, 19, 0.08);
+  --shadow-floating: 0 24px 60px rgba(75, 52, 19, 0.1);
+  --radius-panel: 1.6rem;
+  --radius-card: 1.3rem;
+  --radius-field: 1rem;
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Manrope', 'Segoe UI', sans-serif;
   font-family: var(--font-body);
@@ -45,6 +49,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -74,5 +79,13 @@ select {
 #root {
   width: min(100%, 1600px);
   margin: 0 auto;
-  padding: clamp(1rem, 2vw, 2rem);
+  padding: clamp(0.9rem, 2vw, 2rem);
+  overflow-x: clip;
+}
+
+@media (max-width: 720px) {
+  #root {
+    padding-inline: 0.75rem;
+    padding-block: 0.75rem 1.25rem;
+  }
 }

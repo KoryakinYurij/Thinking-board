@@ -6,6 +6,8 @@ import {
   getActiveTasks,
   moveTask,
   moveTaskWithinStatus,
+  patchTask,
+  restoreTask,
   setTaskStatus,
 } from './board'
 import type { Task } from './model'
@@ -84,6 +86,22 @@ describe('task board operations', () => {
     })
   })
 
+  it('refuses to replace a title with blank text during patching', () => {
+    const tasks = [makeTask({ id: 'a', title: 'Keep title' })]
+
+    const next = patchTask(
+      tasks,
+      'a',
+      { title: '   ' },
+      '2026-03-20T09:00:00.000Z',
+    )
+
+    expect(next.find((task) => task.id === 'a')).toMatchObject({
+      title: 'Keep title',
+      updatedAt: '2026-03-20T09:00:00.000Z',
+    })
+  })
+
   it('moves a task before a target task in another column', () => {
     const tasks = [
       makeTask({ id: 'todo-a', status: 'todo', position: 1000 }),
@@ -146,5 +164,34 @@ describe('task board operations', () => {
     expect(next).toHaveLength(2)
     expect(getActiveTasks(next).map((task) => task.id)).toEqual(['b'])
     expect(archived?.archivedAt).toBe('2026-03-19T15:00:00.000Z')
+  })
+
+  it('restores an archived task to the end of its existing status lane', () => {
+    const tasks = [
+      makeTask({ id: 'todo-a', status: 'todo', position: 1000 }),
+      makeTask({ id: 'todo-b', status: 'todo', position: 2000 }),
+      makeTask({
+        id: 'todo-archived',
+        status: 'todo',
+        position: 1000,
+        archivedAt: '2026-03-19T15:00:00.000Z',
+      }),
+    ]
+
+    const next = restoreTask(tasks, 'todo-archived', '2026-03-19T16:00:00.000Z')
+    const columns = buildColumns(getActiveTasks(next))
+    const restored = next.find((task) => task.id === 'todo-archived')
+
+    expect(columns.todo.map((task) => task.id)).toEqual([
+      'todo-a',
+      'todo-b',
+      'todo-archived',
+    ])
+    expect(restored).toMatchObject({
+      archivedAt: null,
+      updatedAt: '2026-03-19T16:00:00.000Z',
+      position: 3000,
+      status: 'todo',
+    })
   })
 })

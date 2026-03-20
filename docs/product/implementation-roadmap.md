@@ -2,103 +2,115 @@
 
 ## Goal
 
-Ship a small but correct `To Do app` with a kanban view, without overbuilding the board model.
+Ship a small but correct `AI-assisted task execution app` that turns rough user intent into accepted executable work without overbuilding the board model.
 
-## Phase 1: Project Scaffold
+## Phase 1: Documentation And Terminology Reset
 
 Deliverables:
-- chosen app stack
-- base project structure
-- linting and formatting
-- minimal app shell
+- rewritten repo identity and product docs
+- locked terminology for capture, expansion, decomposition, task, subtask, and suggestion set
+- aligned QA guidance
 
 Exit criteria:
-- repository can run locally
-- there is a clear place for domain models, UI, and persistence code
+- a new contributor can read the docs and correctly describe the product
+- no doc still frames board polish as the next main priority
 
-## Phase 2: Task Domain First
+## Phase 2: Domain And Contract Definition
 
 Deliverables:
-- task type or schema
-- task create flow
-- task edit flow
-- task complete and reopen flows
+- capture item schema
+- task and subtask schema
+- suggestion set schema
+- acceptance semantics
+- board projection rules for committed tasks only
 
 Exit criteria:
-- a user can manage tasks without depending on kanban drag-and-drop
-- completion behavior matches `docs/domain/todo-kanban-rules.md`
+- expansion and decomposition are modeled distinctly
+- execution status and AI processing state are clearly separated
 
-## Phase 3: Kanban Projection
+## Phase 3: AI API Foundation
 
 Deliverables:
-- status-based columns
-- task cards
-- board layout for desktop and mobile
-- empty states for each column
+- backend or BFF entry point for AI calls
+- structured output contracts
+- error and timeout handling
+- persistence boundaries for prompts, outputs, and acceptance writes
 
 Exit criteria:
-- tasks appear in the correct column based on status
-- the board reads as a projection of task state
+- the frontend does not need model secrets
+- AI output is machine-parseable and reviewable
 
-## Phase 4: Reorder And Move Semantics
+## Phase 4: Capture And Triage
 
 Deliverables:
-- within-column reorder
-- cross-column move
-- non-drag fallback controls for status change
-- stable persistence of order
+- quick capture surface
+- inbox or triage view
+- capture item storage
+- promotion path from capture item to task
 
 Exit criteria:
-- moved tasks keep the same order after refresh
-- drag-and-drop is not the only way to change status
-- empty-column and edge insertions work
+- a user can store a rough idea without over-structuring it
 
-## Phase 5: Persistence
+## Phase 5: Expansion Flow
 
 Deliverables:
-- saved task state
-- saved ordering
-- recovery after reload
+- `Expand with AI`
+- review UI for expansion output
+- selective acceptance into task fields or notes
 
 Exit criteria:
-- create, edit, complete, and move operations survive refresh
-- failed writes do not leave inconsistent visible state
+- AI can improve clarity without forcing decomposition yet
 
-## Phase 6: Filters
+## Phase 6: Decomposition Flow
 
 Deliverables:
-- text search
-- status filtering
-- clear filter reset behavior
+- `Decompose with AI`
+- generated subtasks or next actions
+- partial accept and reject controls
 
 Exit criteria:
-- filtered views are predictable
-- reorder behavior under filters is either correct or intentionally disabled
+- AI can produce useful executable steps
+- the user can accept only the useful steps
 
-## Phase 7: QA And Hardening
+## Phase 7: Execution Surfaces
 
 Deliverables:
-- automated regression coverage for CRUD and reorder
+- list or focus view
+- board projection for committed top-level tasks
+- task detail with parent-child visibility
+- completion, archive, and restore flows aligned to the new model
+
+Exit criteria:
+- accepted work is easy to execute
+- the board reads as an execution surface, not the planning brain
+
+## Phase 8: QA, Evals, And Hardening
+
+Deliverables:
+- automated regression coverage for capture, acceptance, and execution flows
 - mobile verification
 - accessibility pass on primary actions
-- error and empty state cleanup
+- AI eval checklist coverage
+- error, empty state, and failure cleanup
 
 Exit criteria:
-- `docs/qa/kanban-checklist.md` is satisfied for shipped MVP behavior
+- `docs/qa/kanban-checklist.md` and `docs/qa/ai-evals-checklist.md` are satisfied for shipped behavior
 
 ## Agent Workflow By Phase
 
-- Phase 1: `fullstack-developer` or direct implementation
+- Phase 1: `api-designer` plus direct documentation work
 - Phase 2: `api-designer` first, then `fullstack-developer`
-- Phase 3: `ui-designer` first, then `fullstack-developer`
-- Phase 4: `api-designer` plus `ui-designer`, then `fullstack-developer`
-- Phase 5: `backend-developer` if persistence is server-backed
-- Phase 6: `fullstack-developer`
-- Phase 7: `test-automator`, then `browser-debugger` for UI-only issues
+- Phase 3: `backend-developer` plus `api-designer`
+- Phase 4: `ui-designer` first, then `fullstack-developer`
+- Phase 5: `ui-designer` plus `fullstack-developer`
+- Phase 6: `api-designer` plus `ui-designer`, then `fullstack-developer`
+- Phase 7: `fullstack-developer`
+- Phase 8: `test-automator`, then `browser-debugger` for UI-only issues
 
 ## Scope Control Rules
 
-- If a task does not strengthen task management or kanban clarity, defer it.
+- If a task does not strengthen capture, expansion, decomposition, acceptance, or execution clarity, defer it.
 - If a feature adds a new domain concept, document it before implementing.
+- If a feature makes human review weaker or less explicit, reject or redesign it.
 - If a feature makes completion slower or less obvious, reject or redesign it.
-- If a feature depends on drag-and-drop without a fallback interaction, it is not MVP-complete.
+- If a feature turns the board into the planning engine, it is out of scope for MVP.

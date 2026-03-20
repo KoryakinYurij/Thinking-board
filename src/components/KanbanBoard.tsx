@@ -1,4 +1,4 @@
-import { formatDate, truncate } from '../features/tasks/format'
+import { formatDate, getDueState, truncate } from '../features/tasks/format'
 import {
   PRIORITY_META,
   STATUS_META,
@@ -149,11 +149,13 @@ function TaskCard({
   const canMoveBackward = STATUS_ORDER.indexOf(task.status) > 0
   const canMoveForward = STATUS_ORDER.indexOf(task.status) < STATUS_ORDER.length - 1
   const previewText = task.description.trim() || 'No notes attached.'
+  const dueState = getDueState(task.dueAt, task.status === 'done')
 
   return (
     <article
       className={`task-card ${isSelected ? 'is-selected' : ''}`}
       draggable={!dragDisabled}
+      tabIndex={0}
       onDragStart={() => onDragStartTask(task.id)}
       onDragEnd={onClearDrag}
       onDragOver={(event) => {
@@ -172,6 +174,16 @@ function TaskCard({
         }
       }}
       onClick={() => onSelectTask(task.id)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) {
+          return
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onSelectTask(task.id)
+        }
+      }}
     >
       <div className="task-topline">
         <span
@@ -189,11 +201,23 @@ function TaskCard({
       <p>{truncate(previewText, 110)}</p>
 
       <div className="task-meta">
-        <span>{task.dueAt ? `Due ${formatDate(task.dueAt)}` : 'No date'}</span>
+        <span className={`due-chip is-${dueState.tone}`} title={dueState.detail}>
+          <strong>{dueState.label}</strong>
+          <small>{dueState.detail}</small>
+        </span>
         <span>{index + 1} in lane</span>
       </div>
 
       <div className="task-actions">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSelectTask(task.id)
+          }}
+        >
+          Open
+        </button>
         <button
           type="button"
           onClick={(event) => {

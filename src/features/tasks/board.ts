@@ -11,7 +11,11 @@ import type {
 const POSITION_STEP = 1000
 
 export function getActiveTasks(tasks: Task[]) {
-  return tasks.filter((task) => !task.archivedAt)
+  return tasks.filter((task) => !task.archivedAt && !task.parentTaskId)
+}
+
+export function getArchivedTasks(tasks: Task[]) {
+  return tasks.filter((task) => task.archivedAt && !task.parentTaskId)
 }
 
 export function buildColumns(tasks: Task[]): ColumnMap {
@@ -71,6 +75,7 @@ export function createTask(
 
   const nextTask: Task = {
     id: createId(),
+    sourceCaptureId: draft.sourceCaptureId ?? null,
     title,
     description: draft.description.trim(),
     status: 'todo',
@@ -96,7 +101,7 @@ export function patchTask(
     task.id === taskId
       ? {
           ...task,
-          ...updates,
+          ...normalizeTaskPatch(task, updates),
           updatedAt: timestamp,
         }
       : task,
@@ -195,6 +200,33 @@ export function archiveTask(
   )
 }
 
+export function restoreTask(
+  tasks: Task[],
+  taskId: string,
+  timestamp = new Date().toISOString(),
+) {
+  const task = tasks.find((item) => item.id === taskId && item.archivedAt)
+
+  if (!task) {
+    return tasks
+  }
+
+  const restoredPosition = nextPosition(getActiveTasks(tasks), task.status)
+
+  return sortTasks(
+    tasks.map((item) =>
+      item.id === taskId
+        ? {
+            ...item,
+            archivedAt: null,
+            updatedAt: timestamp,
+            position: restoredPosition,
+          }
+        : item,
+    ),
+  )
+}
+
 export function deleteTask(tasks: Task[], taskId: string) {
   return tasks.filter((task) => task.id !== taskId)
 }
@@ -243,4 +275,15 @@ function resolveInsertIndex(tasks: Task[], placement: MovePlacement) {
   }
 
   return tasks.length
+}
+
+function normalizeTaskPatch(task: Task, updates: TaskPatch): TaskPatch {
+  const normalized = { ...updates }
+
+  if (typeof updates.title === 'string') {
+    const trimmedTitle = updates.title.trim()
+    normalized.title = trimmedTitle || task.title
+  }
+
+  return normalized
 }

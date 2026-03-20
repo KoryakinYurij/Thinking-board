@@ -4,18 +4,40 @@ import { PRIORITY_META, PRIORITY_ORDER } from '../features/tasks/model'
 import type { TaskDraft, TaskPriority } from '../features/tasks/model'
 
 type TaskComposerProps = {
+  onCreateCapture: (rawText: string) => boolean
   onCreateTask: (draft: TaskDraft) => boolean
 }
 
-function TaskComposer({ onCreateTask }: TaskComposerProps) {
+function TaskComposer({ onCreateCapture, onCreateTask }: TaskComposerProps) {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftDescription, setDraftDescription] = useState('')
   const [draftDueAt, setDraftDueAt] = useState('')
   const [draftPriority, setDraftPriority] = useState<TaskPriority>('medium')
 
+  function resetForm() {
+    setDraftTitle('')
+    setDraftDescription('')
+    setDraftDueAt('')
+    setDraftPriority('medium')
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    const rawText = [draftTitle.trim(), draftDescription.trim()]
+      .filter(Boolean)
+      .join('\n\n')
+
+    const wasCreated = onCreateCapture(rawText)
+
+    if (!wasCreated) {
+      return
+    }
+
+    resetForm()
+  }
+
+  function handleCreateTaskNow() {
     const wasCreated = onCreateTask({
       title: draftTitle,
       description: draftDescription,
@@ -27,10 +49,7 @@ function TaskComposer({ onCreateTask }: TaskComposerProps) {
       return
     }
 
-    setDraftTitle('')
-    setDraftDescription('')
-    setDraftDueAt('')
-    setDraftPriority('medium')
+    resetForm()
   }
 
   return (
@@ -42,7 +61,7 @@ function TaskComposer({ onCreateTask }: TaskComposerProps) {
 
       <form className="composer-form" onSubmit={handleSubmit}>
         <label>
-          <span>Task title</span>
+          <span>Capture headline</span>
           <input
             value={draftTitle}
             onChange={(event) => setDraftTitle(event.target.value)}
@@ -88,15 +107,20 @@ function TaskComposer({ onCreateTask }: TaskComposerProps) {
           </label>
         </div>
 
-        <button className="primary-button" type="submit">
-          Add task to queue
-        </button>
+        <div className="composer-actions">
+          <button className="primary-button" type="submit">
+            Capture idea
+          </button>
+          <button type="button" onClick={handleCreateTaskNow}>
+            Commit as task now
+          </button>
+        </div>
       </form>
 
       <div className="composer-footnote">
         <p>
-          The form always creates into <strong>Open Loop</strong>. Status
-          changes happen later and stay explicit.
+          Default capture keeps rough intent out of the board. Direct task commit
+          is still here when the work is already clear enough.
         </p>
       </div>
     </aside>

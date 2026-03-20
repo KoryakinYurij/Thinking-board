@@ -8,6 +8,8 @@ export type TaskPriorityFilter = 'all' | TaskPriority
 
 export type Task = {
   id: string
+  parentTaskId?: string | null
+  sourceCaptureId?: string | null
   title: string
   description: string
   status: TaskStatus
@@ -25,11 +27,16 @@ export type TaskDraft = {
   description: string
   dueAt: string | null
   priority: TaskPriority
+  sourceCaptureId?: string | null
 }
 
 export type TaskPatch = Partial<
   Pick<Task, 'title' | 'description' | 'priority' | 'dueAt'>
 >
+
+export type Subtask = Task & {
+  parentTaskId: string
+}
 
 export type MovePlacement = {
   toStatus: TaskStatus

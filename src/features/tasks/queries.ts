@@ -1,4 +1,4 @@
-import { isDueSoon } from './format'
+import { getDueState } from './format'
 import { STATUS_ORDER } from './model'
 import type {
   Task,
@@ -32,6 +32,17 @@ export function getVisibleStatuses(focusStatus: TaskStatusFilter): TaskStatus[] 
     : ([focusStatus] as TaskStatus[])
 }
 
+export function sortArchivedTasks(tasks: Task[]) {
+  return [...tasks].sort((left, right) => {
+    const leftArchivedAt = left.archivedAt ?? left.updatedAt
+    const rightArchivedAt = right.archivedAt ?? right.updatedAt
+
+    return (
+      new Date(rightArchivedAt).getTime() - new Date(leftArchivedAt).getTime()
+    )
+  })
+}
+
 export function getResolvedSelectedTaskId(
   tasks: Task[],
   selectedTaskId: string | null,
@@ -44,12 +55,15 @@ export function getResolvedSelectedTaskId(
 export function getTaskStats(tasks: Task[]) {
   const openCount = tasks.filter((task) => task.status !== 'done').length
   const doneCount = tasks.filter((task) => task.status === 'done').length
-  const dueSoonCount = tasks.filter((task) => isDueSoon(task.dueAt)).length
+  const urgentCount = tasks.filter((task) =>
+    getDueState(task.dueAt, task.status === 'done').isUrgent,
+  ).length
+  const archivedCount = tasks.filter((task) => task.archivedAt).length
 
   return {
     openCount,
     doneCount,
-    dueSoonCount,
-    archivedCount: 0,
+    urgentCount,
+    archivedCount,
   }
 }

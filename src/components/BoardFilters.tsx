@@ -13,26 +13,64 @@ type BoardFiltersProps = {
   search: string
   focusStatus: TaskStatusFilter
   priorityFilter: TaskPriorityFilter
+  workspaceView: 'inbox' | 'board' | 'archive'
+  inboxCount: number
+  archivedCount: number
   dragDisabled: boolean
   onSearchChange: (value: string) => void
   onFocusStatusChange: (value: TaskStatusFilter) => void
   onPriorityFilterChange: (value: TaskPriorityFilter) => void
+  onWorkspaceViewChange: (value: 'inbox' | 'board' | 'archive') => void
 }
 
 function BoardFilters({
   search,
   focusStatus,
   priorityFilter,
+  workspaceView,
+  inboxCount,
+  archivedCount,
   dragDisabled,
   onSearchChange,
   onFocusStatusChange,
   onPriorityFilterChange,
+  onWorkspaceViewChange,
 }: BoardFiltersProps) {
   return (
     <section className="toolbar panel">
       <div className="panel-heading">
-        <p className="eyebrow">Board lens</p>
-        <h2>Filter the projection without rewriting the truth.</h2>
+        <p className="eyebrow">Workspace lens</p>
+        <h2>
+          {workspaceView === 'inbox'
+            ? 'Review intake without pretending it is already committed work.'
+            : workspaceView === 'board'
+              ? 'Filter the projection without rewriting the truth.'
+              : 'Review archived work without putting it back by accident.'}
+        </h2>
+      </div>
+
+      <div className="view-switch" role="tablist" aria-label="Workspace view">
+        <button
+          type="button"
+          className={workspaceView === 'inbox' ? 'is-active' : ''}
+          onClick={() => onWorkspaceViewChange('inbox')}
+        >
+          Inbox ({inboxCount})
+        </button>
+        <button
+          type="button"
+          className={workspaceView === 'board' ? 'is-active' : ''}
+          onClick={() => onWorkspaceViewChange('board')}
+        >
+          Board
+        </button>
+        <button
+          type="button"
+          className={workspaceView === 'archive' ? 'is-active' : ''}
+          onClick={() => onWorkspaceViewChange('archive')}
+        >
+          Archive ({archivedCount})
+        </button>
       </div>
 
       <div className="toolbar-grid">
@@ -49,6 +87,7 @@ function BoardFilters({
           <span>Status focus</span>
           <select
             value={focusStatus}
+            disabled={workspaceView === 'inbox'}
             onChange={(event) =>
               onFocusStatusChange(event.target.value as TaskStatusFilter)
             }
@@ -66,6 +105,7 @@ function BoardFilters({
           <span>Priority</span>
           <select
             value={priorityFilter}
+            disabled={workspaceView === 'inbox'}
             onChange={(event) =>
               onPriorityFilterChange(event.target.value as TaskPriorityFilter)
             }
@@ -82,9 +122,13 @@ function BoardFilters({
 
       <div className="toolbar-note">
         <p>
-          {dragDisabled
-            ? 'Drag is paused while filters are active so order never becomes ambiguous.'
-            : 'Drag is available because you are looking at the full board order.'}
+          {workspaceView === 'inbox'
+            ? 'Capture items stay outside execution status until you commit them into tasks.'
+            : workspaceView === 'archive'
+            ? 'Restore sends a task back to the end of its current status lane.'
+            : dragDisabled
+              ? 'Drag is paused while filters are active so order never becomes ambiguous.'
+              : 'Drag is available because you are looking at the full board order.'}
         </p>
       </div>
     </section>
