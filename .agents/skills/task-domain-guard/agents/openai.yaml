@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Domain Guard"
+  short_description: "Protect task, capture, and board semantics"
+  default_prompt: "Use $task-domain-guard to review or define task, capture, subtask, and board invariants before changing domain behavior."

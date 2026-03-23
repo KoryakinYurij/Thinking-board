@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Review Flow Builder"
+  short_description: "Build AI review and acceptance surfaces"
+  default_prompt: "Use $ai-review-flow-builder to design or review AI review surfaces, acceptance controls, and failure states before implementing UI changes."

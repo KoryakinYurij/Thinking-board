@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Regression Guard"
+  short_description: "Plan AI regression coverage by risk"
+  default_prompt: "Use $ai-regression-guard to decide the minimum regression coverage, checklist updates, and blocking gaps for an AI flow change in this repo."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Acceptance Designer"
+  short_description: "Design AI acceptance contracts and review flows"
+  default_prompt: "Use $ai-acceptance-designer to define or review AI suggestion contracts, acceptance payloads, and accept-reject semantics before implementation."
