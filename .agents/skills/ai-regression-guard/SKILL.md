@@ -59,6 +59,9 @@ Inspect these implementation paths before deciding coverage:
 - `shared/ai/contracts.ts`
 - `server/routes/ai.ts`
 - `server/acceptance/suggestions.ts`
+- `server/openai/schemas.ts`
+- `server/openai/expand.ts`
+- `server/openai/decompose.ts`
 - `src/lib/api/ai.ts`
 - `src/components/CaptureExpansionPanel.tsx`
 - `src/components/TaskExpansionPanel.tsx`
@@ -78,6 +81,7 @@ Useful commands:
 rg --files src server shared | rg "(test|spec)\."
 rg -n "accept|reject|retry|failed|partially_accepted|rejected" src server shared docs
 rg -n "Expand with AI|Decompose with AI|suggestionSet|acceptedFields|aiActionError" src docs
+rg -n "schema|json_schema|strict|responses.create|prompt" server/openai shared docs
 rg -n "vitest|testing-library|jsdom|msw|supertest|playwright" package.json .
 ```
 
@@ -242,3 +246,4 @@ Avoid these patterns:
 - citing a `todo` test as meaningful coverage
 - skipping eval or checklist work because unit tests passed
 - opening a broad test refactor when one targeted regression would close the risk
+

@@ -1,6 +1,6 @@
 ---
 name: ai-acceptance-designer
-description: Design and review AI suggestion contracts, accept or reject flows, partial acceptance semantics, persistence rules, and acceptance-safe write payloads for this AI-assisted task execution app. Use when changing expansion or decomposition schemas, suggestion set status transitions, accepted field enums, acceptance DTOs, server validation, retry or idempotency behavior, or canonical write mapping from AI suggestions into tasks or subtasks. Do not use for prompt-only changes, purely visual review UI polish, or routine API wiring that does not change acceptance semantics.
+description: Design and review AI suggestion contracts, accept or reject flows, partial acceptance semantics, persistence rules, failure classification, and acceptance-safe write payloads for this AI-assisted task execution app. Use when changing expansion or decomposition schemas, suggestion set status transitions, accepted field enums, acceptance DTOs, server validation, stable error classes, retry or idempotency behavior, or canonical write mapping from AI suggestions into tasks or subtasks. Do not use for prompt-only changes, purely visual review UI polish, or routine API wiring that does not change acceptance semantics.
 ---
 
 # AI Acceptance Designer
@@ -248,5 +248,6 @@ Avoid these patterns:
 - reusing board columns as AI lifecycle
 - free-form acceptance payloads that hide canonical writes
 - undocumented schema changes
+
 
 
