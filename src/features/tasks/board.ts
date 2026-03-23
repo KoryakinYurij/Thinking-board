@@ -114,6 +114,21 @@ export function setTaskStatus(
   status: TaskStatus,
   timestamp = new Date().toISOString(),
 ) {
+  const task = tasks.find((item) => item.id === taskId)
+
+  if (task?.parentTaskId) {
+    return tasks.map((item) =>
+      item.id === taskId
+        ? {
+            ...item,
+            status,
+            updatedAt: timestamp,
+            completedAt: status === 'done' ? timestamp : null,
+          }
+        : item,
+    )
+  }
+
   return applyBoardMutation(tasks, (columns) => {
     const movedTask = findAndRemoveTask(columns, taskId)
 
@@ -189,8 +204,14 @@ export function archiveTask(
   taskId: string,
   timestamp = new Date().toISOString(),
 ) {
+  const familyIds = getTaskFamilyIds(tasks, taskId)
+
+  if (familyIds.size === 0) {
+    return tasks
+  }
+
   return tasks.map((task) =>
-    task.id === taskId
+    familyIds.has(task.id)
       ? {
           ...task,
           archivedAt: timestamp,
@@ -212,15 +233,16 @@ export function restoreTask(
   }
 
   const restoredPosition = nextPosition(getActiveTasks(tasks), task.status)
+  const familyIds = getTaskFamilyIds(tasks, taskId)
 
   return sortTasks(
     tasks.map((item) =>
-      item.id === taskId
+      familyIds.has(item.id)
         ? {
             ...item,
             archivedAt: null,
             updatedAt: timestamp,
-            position: restoredPosition,
+            position: item.id === taskId ? restoredPosition : item.position,
           }
         : item,
     ),
@@ -228,14 +250,23 @@ export function restoreTask(
 }
 
 export function deleteTask(tasks: Task[], taskId: string) {
-  return tasks.filter((task) => task.id !== taskId)
+  const familyIds = getTaskFamilyIds(tasks, taskId)
+
+  if (familyIds.size === 0) {
+    return tasks
+  }
+
+  return tasks.filter((task) => !familyIds.has(task.id))
 }
 
 function applyBoardMutation(
   tasks: Task[],
   mutate: (columns: ColumnMap) => void,
 ) {
-  const archived = tasks.filter((task) => task.archivedAt)
+  const archivedTopLevel = tasks.filter(
+    (task) => task.archivedAt && !task.parentTaskId,
+  )
+  const nestedTasks = tasks.filter((task) => task.parentTaskId)
   const columns = buildColumns(getActiveTasks(tasks).map((task) => ({ ...task })))
 
   mutate(columns)
@@ -247,7 +278,7 @@ function applyBoardMutation(
     })),
   )
 
-  return sortTasks([...active, ...archived])
+  return sortTasks([...active, ...archivedTopLevel, ...nestedTasks])
 }
 
 function findAndRemoveTask(columns: ColumnMap, taskId: string) {
@@ -286,4 +317,27 @@ function normalizeTaskPatch(task: Task, updates: TaskPatch): TaskPatch {
   }
 
   return normalized
+}
+
+function getTaskFamilyIds(tasks: Task[], rootTaskId: string) {
+  const familyIds = new Set<string>()
+  const stack = [rootTaskId]
+
+  while (stack.length > 0) {
+    const currentTaskId = stack.pop()
+
+    if (!currentTaskId || familyIds.has(currentTaskId)) {
+      continue
+    }
+
+    familyIds.add(currentTaskId)
+
+    for (const childTask of tasks) {
+      if (childTask.parentTaskId === currentTaskId) {
+        stack.push(childTask.id)
+      }
+    }
+  }
+
+  return familyIds
 }

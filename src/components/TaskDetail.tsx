@@ -216,16 +216,22 @@ function TaskDetail({
 
           {subtasks.length > 0 ? (
             <section className="subtask-panel">
-              <div className="ai-review-section">
+              <div className="panel-heading">
                 <p className="eyebrow">Subtasks</p>
-                <ul className="ai-list">
-                  {subtasks.map((subtask) => (
-                    <li key={subtask.id}>
-                      <strong>{subtask.title}</strong>
-                      {subtask.description ? `: ${subtask.description}` : ''}
-                    </li>
-                  ))}
-                </ul>
+                <h3>Work the smaller pieces directly.</h3>
+              </div>
+
+              <div className="subtask-list">
+                {subtasks.map((subtask, index) => (
+                  <EditableSubtaskCard
+                    key={subtask.id}
+                    subtask={subtask}
+                    index={index}
+                    onPatchTask={onPatchTask}
+                    onSetTaskStatus={onSetTaskStatus}
+                    onDeleteTask={onDeleteTask}
+                  />
+                ))}
               </div>
             </section>
           ) : null}
@@ -357,6 +363,145 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
         }}
       />
     </label>
+  )
+}
+
+type EditableSubtaskCardProps = {
+  subtask: Task
+  index: number
+  onPatchTask: (taskId: string, updates: TaskPatch) => void
+  onSetTaskStatus: (taskId: string, status: TaskStatus) => void
+  onDeleteTask: (taskId: string) => void
+}
+
+function EditableSubtaskCard({
+  subtask,
+  index,
+  onPatchTask,
+  onSetTaskStatus,
+  onDeleteTask,
+}: EditableSubtaskCardProps) {
+  const [titleDraft, setTitleDraft] = useState(subtask.title)
+  const [notesDraft, setNotesDraft] = useState(subtask.description)
+  const dueState = getDueState(subtask.dueAt, subtask.status === 'done')
+
+  function commitTitleDraft() {
+    const trimmedTitle = titleDraft.trim()
+
+    if (!trimmedTitle) {
+      setTitleDraft(subtask.title)
+      return
+    }
+
+    if (trimmedTitle !== subtask.title) {
+      onPatchTask(subtask.id, { title: trimmedTitle })
+    }
+
+    setTitleDraft(trimmedTitle)
+  }
+
+  function commitNotesDraft() {
+    const trimmedNotes = notesDraft.trim()
+
+    if (trimmedNotes !== subtask.description) {
+      onPatchTask(subtask.id, { description: trimmedNotes })
+    }
+
+    setNotesDraft(trimmedNotes)
+  }
+
+  return (
+    <article className={`subtask-card is-${subtask.status}`}>
+      <div className="subtask-card-header">
+        <div className="subtask-card-kicker">
+          <p className="eyebrow">Subtask {index + 1}</p>
+          <h4>{subtask.title}</h4>
+        </div>
+
+        <label className="subtask-status-field">
+          <span>Status</span>
+          <select
+            value={subtask.status}
+            onChange={(event) =>
+              onSetTaskStatus(subtask.id, event.target.value as TaskStatus)
+            }
+          >
+            {STATUS_ORDER.map((status) => (
+              <option key={status} value={status}>
+                {STATUS_META[status].label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="subtask-grid">
+        <label>
+          <span>Title</span>
+          <input
+            value={titleDraft}
+            maxLength={120}
+            onChange={(event) => setTitleDraft(event.target.value)}
+            onBlur={commitTitleDraft}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.currentTarget.blur()
+              }
+            }}
+          />
+        </label>
+
+        <label className="subtask-notes-field">
+          <span>Notes</span>
+          <textarea
+            rows={4}
+            value={notesDraft}
+            onChange={(event) => setNotesDraft(event.target.value)}
+            onBlur={commitNotesDraft}
+          />
+        </label>
+      </div>
+
+      <div className="subtask-meta">
+        <span className={`due-chip is-${dueState.tone}`} title={dueState.detail}>
+          <strong>{dueState.label}</strong>
+          <small>{dueState.detail}</small>
+        </span>
+        <span>Updated {formatDate(subtask.updatedAt)}</span>
+      </div>
+
+      <div className="subtask-actions">
+        <button
+          type="button"
+          onClick={() => onSetTaskStatus(subtask.id, 'todo')}
+          disabled={subtask.status === 'todo'}
+        >
+          Set open
+        </button>
+        <button
+          type="button"
+          onClick={() => onSetTaskStatus(subtask.id, 'in_progress')}
+          disabled={subtask.status === 'in_progress'}
+        >
+          Start
+        </button>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => onSetTaskStatus(subtask.id, 'done')}
+          disabled={subtask.status === 'done'}
+        >
+          Done
+        </button>
+        <button
+          type="button"
+          className="danger-button"
+          onClick={() => onDeleteTask(subtask.id)}
+        >
+          Delete
+        </button>
+      </div>
+    </article>
   )
 }
 

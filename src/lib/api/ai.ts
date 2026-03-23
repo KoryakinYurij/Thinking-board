@@ -1,8 +1,14 @@
 import type {
+  AcceptDecompositionSuggestionRequest,
+  AcceptDecompositionSuggestionResponse,
+  AcceptExpansionSuggestionRequest,
+  AcceptExpansionSuggestionResponse,
   DecomposeRequest,
   DecomposeResponse,
   ExpandRequest,
   ExpandResponse,
+  RejectSuggestionRequest,
+  RejectSuggestionResponse,
 } from '../../../shared/ai/contracts'
 
 export async function expandWithAI(input: ExpandRequest): Promise<ExpandResponse> {
@@ -57,4 +63,71 @@ export async function decomposeWithAI(
   }
 
   return (await response.json()) as DecomposeResponse
+}
+
+export async function acceptExpansionSuggestionWithAI(
+  suggestionSetId: string,
+  input: Omit<AcceptExpansionSuggestionRequest, 'suggestionSetId'>,
+): Promise<AcceptExpansionSuggestionResponse> {
+  const response = await fetch(`/api/ai/suggestions/${suggestionSetId}/accept`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Accept request failed'))
+  }
+
+  return (await response.json()) as AcceptExpansionSuggestionResponse
+}
+
+export async function acceptDecompositionSuggestionWithAI(
+  suggestionSetId: string,
+  input: Omit<AcceptDecompositionSuggestionRequest, 'suggestionSetId'>,
+): Promise<AcceptDecompositionSuggestionResponse> {
+  const response = await fetch(`/api/ai/suggestions/${suggestionSetId}/accept`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Accept request failed'))
+  }
+
+  return (await response.json()) as AcceptDecompositionSuggestionResponse
+}
+
+export async function rejectSuggestionWithAI(
+  suggestionSetId: string,
+  input: Omit<RejectSuggestionRequest, 'suggestionSetId'>,
+): Promise<RejectSuggestionResponse> {
+  const response = await fetch(`/api/ai/suggestions/${suggestionSetId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, 'Reject request failed'))
+  }
+
+  return (await response.json()) as RejectSuggestionResponse
+}
+
+async function readErrorMessage(response: Response, fallbackMessage: string) {
+  try {
+    const parsed = (await response.json()) as { error?: string }
+    return parsed.error || fallbackMessage
+  } catch {
+    const fallbackText = await response.text()
+    return fallbackText || fallbackMessage
+  }
 }

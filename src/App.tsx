@@ -9,6 +9,11 @@ import Masthead from './components/Masthead'
 import TaskComposer from './components/TaskComposer'
 import TaskDetail from './components/TaskDetail'
 import {
+  acceptDecompositionSuggestionWithAI,
+  acceptExpansionSuggestionWithAI,
+  rejectSuggestionWithAI,
+} from './lib/api/ai'
+import {
   getLatestSuggestionSet,
   getLatestExpansionSuggestionSet,
   recordDecompositionSuggestion,
@@ -58,7 +63,6 @@ import {
 } from './features/tasks/queries'
 import { loadTasks, saveTasks } from './features/tasks/storage'
 import {
-  buildDecompositionAcceptance,
   getSubtasksForTask,
 } from './features/subtasks/store'
 import type {
@@ -89,6 +93,7 @@ function App() {
   const [priorityFilter, setPriorityFilter] =
     useState<TaskPriorityFilter>('all')
   const [dragTaskId, setDragTaskId] = useState<string | null>(null)
+  const [aiActionError, setAiActionError] = useState<string | null>(null)
   const { tasks, captureItems, suggestionSets, persistenceError } = appState
 
   const deferredSearch = useDeferredValue(search)
@@ -348,19 +353,43 @@ function App() {
   }
 
   function handleRejectSuggestionSet(suggestionSetId: string) {
-    updateAllSuggestionSets((current) => {
-      const nextAfterExpansion = updateExpansionSuggestionStatus(
-        current,
-        suggestionSetId,
-        'rejected',
-      )
+    const suggestionSet = suggestionSets.find((item) => item.id === suggestionSetId)
 
-      return updateDecompositionSuggestionStatus(
-        nextAfterExpansion,
-        suggestionSetId,
-        'rejected',
-      )
-    })
+    if (!suggestionSet) {
+      return
+    }
+
+    void (async () => {
+      setAiActionError(null)
+
+      try {
+        const result = await rejectSuggestionWithAI(suggestionSetId, {
+          kind: suggestionSet.kind,
+        })
+
+        updateAllSuggestionSets((current) =>
+          result.kind === 'expansion'
+            ? updateExpansionSuggestionStatus(
+                current,
+                suggestionSetId,
+                result.reviewStatus,
+                [],
+                result.appliedAt,
+              )
+            : updateDecompositionSuggestionStatus(
+                current,
+                suggestionSetId,
+                result.reviewStatus,
+                [],
+                result.appliedAt,
+              ),
+        )
+      } catch (error) {
+        setAiActionError(
+          error instanceof Error ? error.message : 'Reject request failed.',
+        )
+      }
+    })()
   }
 
   function handleStoreDecompositionSuggestion(
@@ -390,60 +419,138 @@ function App() {
   function handleAcceptTaskExpansionSuggestion(
     suggestionSetId: string,
     taskId: string,
-    updates: TaskPatch,
+    _updates: TaskPatch,
     acceptedFields: ExpansionAcceptedField[],
   ) {
-    const acceptanceStatus =
-      acceptedFields.length === 2 ? 'accepted' : 'partially_accepted'
-
-    setAppState((currentState) =>
-      finalizeAppData({
-        tasks: patchTask(currentState.tasks, taskId, updates),
-        captureItems: currentState.captureItems,
-        suggestionSets: updateExpansionSuggestionStatus(
-          currentState.suggestionSets,
-          suggestionSetId,
-          acceptanceStatus,
-          acceptedFields,
-        ),
-      }),
+    const task = tasks.find((item) => item.id === taskId)
+    const suggestionSet = suggestionSets.find(
+      (item): item is Extract<SuggestionSet, { kind: 'expansion' }> =>
+        item.id === suggestionSetId && item.kind === 'expansion',
     )
+
+    if (!task || !suggestionSet?.payload || acceptedFields.length === 0) {
+      return
+    }
+
+    const suggestionPayload = suggestionSet.payload
+
+    void (async () => {
+      setAiActionError(null)
+
+      try {
+        const result = await acceptExpansionSuggestionWithAI(suggestionSetId, {
+          kind: 'expansion',
+          sourceEntityType: 'task',
+          sourceEntityId: taskId,
+          acceptedFields,
+          suggestion: suggestionPayload,
+          currentDescription: task.description,
+          fallbackTitle: task.title,
+          sourceCaptureId: task.sourceCaptureId ?? null,
+        })
+
+        setAppState((currentState) =>
+          finalizeAppData({
+            tasks: result.taskPatch
+              ? patchTask(
+                  currentState.tasks,
+                  taskId,
+                  result.taskPatch,
+                  result.appliedAt,
+                )
+              : currentState.tasks,
+            captureItems: currentState.captureItems,
+            suggestionSets: updateExpansionSuggestionStatus(
+              currentState.suggestionSets,
+              suggestionSetId,
+              result.reviewStatus,
+              result.acceptedFields,
+              result.appliedAt,
+            ),
+          }),
+        )
+      } catch (error) {
+        setAiActionError(
+          error instanceof Error ? error.message : 'Accept request failed.',
+        )
+      }
+    })()
   }
 
   function handleAcceptCaptureExpansionSuggestion(
     suggestionSetId: string,
     itemId: string,
-    draft: TaskDraft,
+    _draft: TaskDraft,
     acceptedFields: ExpansionAcceptedField[],
   ) {
     const captureItem = captureItems.find((item) => item.id === itemId && !item.archivedAt)
+    const suggestionSet = suggestionSets.find(
+      (item): item is Extract<SuggestionSet, { kind: 'expansion' }> =>
+        item.id === suggestionSetId && item.kind === 'expansion',
+    )
 
-    if (!captureItem || !draft.title.trim()) {
+    if (!captureItem || !suggestionSet?.payload || acceptedFields.length === 0) {
       return false
     }
 
-    const acceptanceStatus =
-      acceptedFields.length === 2 ? 'accepted' : 'partially_accepted'
-    const timestamp = new Date().toISOString()
     const createdTaskId = crypto.randomUUID()
+    const suggestionPayload = suggestionSet.payload
+    const fallbackTitle = buildTaskDraftFromCapture(captureItem).title
 
-    setAppState((currentState) =>
-      finalizeAppData({
-        tasks: createTask(currentState.tasks, draft, timestamp, () => createdTaskId),
-        captureItems: archiveCaptureItem(currentState.captureItems, itemId, timestamp),
-        suggestionSets: updateExpansionSuggestionStatus(
-          currentState.suggestionSets,
-          suggestionSetId,
-          acceptanceStatus,
+    void (async () => {
+      setAiActionError(null)
+
+      try {
+        const result = await acceptExpansionSuggestionWithAI(suggestionSetId, {
+          kind: 'expansion',
+          sourceEntityType: 'capture_item',
+          sourceEntityId: itemId,
           acceptedFields,
-        ),
-      }),
-    )
+          suggestion: suggestionPayload,
+          currentDescription: '',
+          fallbackTitle,
+          sourceCaptureId: captureItem.id,
+        })
 
-    startTransition(() => {
-      setWorkspaceView('board')
-      setSelectedTaskId(createdTaskId)
-    })
+        const taskDraft = result.taskDraft
+
+        if (!taskDraft) {
+          throw new Error('Accept response returned no task draft.')
+        }
+
+        setAppState((currentState) =>
+          finalizeAppData({
+            tasks: createTask(
+              currentState.tasks,
+              taskDraft,
+              result.appliedAt,
+              () => createdTaskId,
+            ),
+            captureItems: archiveCaptureItem(
+              currentState.captureItems,
+              itemId,
+              result.appliedAt,
+            ),
+            suggestionSets: updateExpansionSuggestionStatus(
+              currentState.suggestionSets,
+              suggestionSetId,
+              result.reviewStatus,
+              result.acceptedFields,
+              result.appliedAt,
+            ),
+          }),
+        )
+
+        startTransition(() => {
+          setWorkspaceView('board')
+          setSelectedTaskId(createdTaskId)
+        })
+      } catch (error) {
+        setAiActionError(
+          error instanceof Error ? error.message : 'Accept request failed.',
+        )
+      }
+    })()
 
     return true
   }
@@ -457,51 +564,98 @@ function App() {
       return
     }
 
-    const acceptanceStatus =
-      acceptedFields.length === 2 ? 'accepted' : 'partially_accepted'
-    const timestamp = new Date().toISOString()
+    const parentTask = tasks.find((task) => task.id === taskId)
+    const suggestionSet = suggestionSets.find(
+      (item): item is DecompositionSuggestionSet =>
+        item.id === suggestionSetId && item.kind === 'decomposition',
+    )
 
-    setAppState((currentState) => {
-      const parentTask = currentState.tasks.find((task) => task.id === taskId)
-      const suggestionSet = currentState.suggestionSets.find(
-        (item): item is DecompositionSuggestionSet =>
-          item.id === suggestionSetId && item.kind === 'decomposition',
-      )
+    if (!parentTask || !suggestionSet?.payload) {
+      return
+    }
 
-      if (!parentTask || !suggestionSet?.payload) {
-        return currentState
-      }
+    const suggestionPayload = suggestionSet.payload
+    const existingSubtasks = getSubtasksForTask(tasks, taskId).map((subtask) => ({
+      title: subtask.title,
+      description: subtask.description,
+      position: subtask.position,
+    }))
 
-      const acceptance = buildDecompositionAcceptance(
-        parentTask,
-        suggestionSet.payload,
-        acceptedFields,
-        getSubtasksForTask(currentState.tasks, parentTask.id),
-        timestamp,
-      )
+    void (async () => {
+      setAiActionError(null)
 
-      const patchedTasks = currentState.tasks.map((task) =>
-        task.id === parentTask.id && acceptance.nextActionsNotesPatch
-          ? {
-              ...task,
-              description: acceptance.nextActionsNotesPatch,
-              updatedAt: timestamp,
-            }
-          : task,
-      )
-
-      return finalizeAppData({
-        tasks: [...patchedTasks, ...acceptance.subtasks],
-        captureItems: currentState.captureItems,
-        suggestionSets: updateDecompositionSuggestionStatus(
-          currentState.suggestionSets,
-          suggestionSetId,
-          acceptanceStatus,
+      try {
+        const result = await acceptDecompositionSuggestionWithAI(suggestionSetId, {
+          kind: 'decomposition',
+          sourceEntityId: taskId,
           acceptedFields,
-          timestamp,
-        ),
-      })
-    })
+          suggestion: suggestionPayload,
+          parentTask: {
+            title: parentTask.title,
+            description: parentTask.description,
+            priority: parentTask.priority,
+            dueAt: parentTask.dueAt,
+          },
+          existingSubtasks,
+        })
+
+        setAppState((currentState) =>
+          finalizeAppData({
+            tasks: [
+              ...(result.taskPatch
+                ? patchTask(
+                    currentState.tasks,
+                    taskId,
+                    result.taskPatch,
+                    result.appliedAt,
+                  )
+                : currentState.tasks),
+              ...buildAcceptedSubtasks(taskId, result.subtaskDrafts, result.appliedAt),
+            ],
+            captureItems: currentState.captureItems,
+            suggestionSets: updateDecompositionSuggestionStatus(
+              currentState.suggestionSets,
+              suggestionSetId,
+              result.reviewStatus,
+              result.acceptedFields,
+              result.appliedAt,
+            ),
+          }),
+        )
+      } catch (error) {
+        setAiActionError(
+          error instanceof Error ? error.message : 'Accept request failed.',
+        )
+      }
+    })()
+  }
+
+  function buildAcceptedSubtasks(
+    parentTaskId: string,
+    subtaskDrafts: Array<{
+      title: string
+      description: string
+      priority: Task['priority']
+      dueAt: string | null
+      position: number
+    }>,
+    timestamp: string,
+  ) {
+    return subtaskDrafts.map((subtaskDraft) => ({
+      id: crypto.randomUUID(),
+      parentTaskId,
+      sourceCaptureId: null,
+      title: subtaskDraft.title,
+      description: subtaskDraft.description,
+      status: 'todo' as const,
+      priority: subtaskDraft.priority,
+      position: subtaskDraft.position,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      completedAt: null,
+      archivedAt: null,
+      dueAt: subtaskDraft.dueAt,
+    }))
   }
 
   return (
@@ -522,6 +676,12 @@ function App() {
           {persistenceError ? (
             <div className="status-banner is-warning" role="status">
               <p>{persistenceError}</p>
+            </div>
+          ) : null}
+
+          {aiActionError ? (
+            <div className="status-banner is-warning" role="status">
+              <p>{aiActionError}</p>
             </div>
           ) : null}
 

@@ -1,9 +1,17 @@
 import { Router } from 'express'
 import { ZodError } from 'zod'
 import {
+  acceptDecompositionSuggestionRequestSchema,
+  acceptExpansionSuggestionRequestSchema,
   decomposeRequestSchema,
   expandRequestSchema,
+  rejectSuggestionRequestSchema,
 } from '../../shared/ai/contracts'
+import {
+  acceptDecompositionSuggestion,
+  acceptExpansionSuggestion,
+  rejectSuggestion,
+} from '../acceptance/suggestions'
 import { isOpenAIConfigured } from '../openai/client'
 import { generateDecompositionSuggestion } from '../openai/decompose'
 import { generateExpansionSuggestion } from '../openai/expand'
@@ -70,19 +78,62 @@ aiRouter.post('/decompose', async (request, response) => {
 })
 
 aiRouter.post('/suggestions/:id/accept', (request, response) => {
-  response.status(501).json({
-    error:
-      `Suggestion accept is not implemented yet for ${request.params.id}. ` +
-      'Acceptance still runs through the app state boundary.',
-  })
+  try {
+    const payload =
+      request.body?.kind === 'decomposition'
+        ? acceptDecompositionSuggestionRequestSchema.parse({
+            ...request.body,
+            suggestionSetId: request.params.id,
+          })
+        : acceptExpansionSuggestionRequestSchema.parse({
+            ...request.body,
+            suggestionSetId: request.params.id,
+          })
+
+    const result =
+      payload.kind === 'decomposition'
+        ? acceptDecompositionSuggestion(payload)
+        : acceptExpansionSuggestion(payload)
+
+    response.json(result)
+  } catch (error) {
+    if (error instanceof ZodError) {
+      response.status(400).json({
+        error: 'Invalid accept suggestion payload',
+        issues: error.issues,
+      })
+      return
+    }
+
+    response.status(500).json({
+      error:
+        error instanceof Error ? error.message : 'Unexpected suggestion accept error',
+    })
+  }
 })
 
 aiRouter.post('/suggestions/:id/reject', (request, response) => {
-  response.status(501).json({
-    error:
-      `Suggestion reject is not implemented yet for ${request.params.id}. ` +
-      'Rejection still runs through the app state boundary.',
-  })
+  try {
+    const payload = rejectSuggestionRequestSchema.parse({
+      ...request.body,
+      suggestionSetId: request.params.id,
+    })
+
+    response.json(rejectSuggestion(payload))
+  } catch (error) {
+    if (error instanceof ZodError) {
+      response.status(400).json({
+        error: 'Invalid reject suggestion payload',
+        issues: error.issues,
+      })
+      return
+    }
+
+    response.status(500).json({
+      error:
+        error instanceof Error ? error.message : 'Unexpected suggestion reject error',
+    })
+  }
 })
 
 export default aiRouter

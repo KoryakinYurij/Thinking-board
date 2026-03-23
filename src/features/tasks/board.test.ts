@@ -3,6 +3,7 @@ import {
   archiveTask,
   buildColumns,
   createTask,
+  deleteTask,
   getActiveTasks,
   moveTask,
   moveTaskWithinStatus,
@@ -15,6 +16,8 @@ import type { Task } from './model'
 function makeTask(overrides: Partial<Task>): Task {
   return {
     id: overrides.id ?? 'task-id',
+    parentTaskId: overrides.parentTaskId,
+    sourceCaptureId: overrides.sourceCaptureId ?? null,
     title: overrides.title ?? 'Task title',
     description: overrides.description ?? '',
     status: overrides.status ?? 'todo',
@@ -166,6 +169,22 @@ describe('task board operations', () => {
     expect(archived?.archivedAt).toBe('2026-03-19T15:00:00.000Z')
   })
 
+  it('archives descendant subtasks together with their parent task', () => {
+    const tasks = [
+      makeTask({ id: 'parent' }),
+      makeTask({ id: 'child', parentTaskId: 'parent', archivedAt: null }),
+    ]
+
+    const next = archiveTask(tasks, 'parent', '2026-03-20T10:00:00.000Z')
+
+    expect(next.find((task) => task.id === 'parent')).toMatchObject({
+      archivedAt: '2026-03-20T10:00:00.000Z',
+    })
+    expect(next.find((task) => task.id === 'child')).toMatchObject({
+      archivedAt: '2026-03-20T10:00:00.000Z',
+    })
+  })
+
   it('restores an archived task to the end of its existing status lane', () => {
     const tasks = [
       makeTask({ id: 'todo-a', status: 'todo', position: 1000 }),
@@ -192,6 +211,96 @@ describe('task board operations', () => {
       updatedAt: '2026-03-19T16:00:00.000Z',
       position: 3000,
       status: 'todo',
+    })
+  })
+
+  it('restores descendant subtasks together with their parent task', () => {
+    const tasks = [
+      makeTask({
+        id: 'parent',
+        archivedAt: '2026-03-20T10:00:00.000Z',
+      }),
+      makeTask({
+        id: 'child',
+        parentTaskId: 'parent',
+        archivedAt: '2026-03-20T10:00:00.000Z',
+      }),
+    ]
+
+    const next = restoreTask(tasks, 'parent', '2026-03-20T11:00:00.000Z')
+
+    expect(next.find((task) => task.id === 'parent')).toMatchObject({
+      archivedAt: null,
+      updatedAt: '2026-03-20T11:00:00.000Z',
+    })
+    expect(next.find((task) => task.id === 'child')).toMatchObject({
+      archivedAt: null,
+      updatedAt: '2026-03-20T11:00:00.000Z',
+    })
+  })
+
+  it('deletes descendant subtasks when deleting a parent task', () => {
+    const tasks = [
+      makeTask({ id: 'parent' }),
+      makeTask({ id: 'child-a', parentTaskId: 'parent' }),
+      makeTask({ id: 'child-b', parentTaskId: 'parent' }),
+      makeTask({ id: 'sibling' }),
+    ]
+
+    const next = deleteTask(tasks, 'parent')
+
+    expect(next.map((task) => task.id)).toEqual(['sibling'])
+  })
+
+  it('updates subtask status without dropping it from the dataset', () => {
+    const tasks = [
+      makeTask({ id: 'parent' }),
+      makeTask({
+        id: 'child',
+        parentTaskId: 'parent',
+        status: 'todo',
+        position: 1000,
+      }),
+    ]
+
+    const next = setTaskStatus(
+      tasks,
+      'child',
+      'done',
+      '2026-03-20T12:00:00.000Z',
+    )
+
+    expect(next).toHaveLength(2)
+    expect(next.find((task) => task.id === 'child')).toMatchObject({
+      status: 'done',
+      completedAt: '2026-03-20T12:00:00.000Z',
+      parentTaskId: 'parent',
+    })
+  })
+
+  it('preserves active subtasks when mutating the top-level board', () => {
+    const tasks = [
+      makeTask({ id: 'parent', status: 'todo', position: 1000 }),
+      makeTask({ id: 'top-level', status: 'todo', position: 2000 }),
+      makeTask({
+        id: 'child',
+        parentTaskId: 'parent',
+        status: 'in_progress',
+        position: 1000,
+      }),
+    ]
+
+    const next = moveTaskWithinStatus(
+      tasks,
+      'top-level',
+      -1,
+      '2026-03-20T13:00:00.000Z',
+    )
+
+    expect(next.find((task) => task.id === 'child')).toMatchObject({
+      id: 'child',
+      parentTaskId: 'parent',
+      status: 'in_progress',
     })
   })
 })

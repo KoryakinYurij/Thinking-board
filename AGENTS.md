@@ -69,6 +69,19 @@ Agents working in this repository must read these documents before making materi
 - Prefer simple, explainable acceptance flows over magical AI mutation.
 - If UI behavior and domain rules conflict, domain rules win.
 
+## Shell-First Rule
+
+- Agents must treat the shell as the default execution surface for work in this repository.
+- Before material work, inspect the codebase through shell commands rather than relying only on prior context or assumptions.
+- Prefer shell for:
+  - file discovery
+  - reading project files
+  - code search
+  - git state inspection
+  - environment verification
+  - builds, tests, and local validation
+- Do not stop at analysis-only when shell inspection or shell verification is relevant and available.
+
 ## When To Use Which Agent
 
 - `code-mapper`: use before changing an existing code path, once the codebase exists.
