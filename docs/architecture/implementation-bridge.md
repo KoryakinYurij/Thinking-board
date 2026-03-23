@@ -6,7 +6,7 @@ This document maps the current local-only codebase to the new AI-assisted produc
 
 ## Current Code Reality
 
-The current app is a single-front-end React/Vite project with one canonical local task array.
+The current app now has a React/Vite frontend plus a small TypeScript/Express backend for AI routes. The execution model still relies on local-first task state, but AI calls already go through server endpoints.
 
 Primary files today:
 - `src/App.tsx`
@@ -25,8 +25,8 @@ Current domain reality:
 - no `CaptureItem`
 - no `Subtask`
 - no `SuggestionSet`
-- no server boundary
-- no AI contracts
+- backend AI routes exist under `server/`
+- shared AI contracts exist under `shared/ai/contracts.ts`
 
 ## Bridge Principle
 
@@ -73,7 +73,7 @@ Meaning:
 - `ai` owns suggestion state and review logic
 - `subtasks` owns child execution work if split becomes necessary
 - `lib/api` owns typed frontend API clients
-- `server` owns OpenAI integration and acceptance-safe writes
+- `server` owns LLM integration and acceptance-safe writes
 
 ## Mapping From Current Files To Future Responsibilities
 
@@ -161,20 +161,24 @@ Do not introduce all entities in one large refactor.
 
 ## Recommended Backend Bridge
 
-The current repo has no backend. The smallest safe bridge is:
+The repo now has the initial backend bridge:
 
-- keep the Vite frontend
-- add a small TypeScript server under `server/`
-- put all OpenAI API access behind that server
-- keep frontend and server contracts typed
+- Vite frontend remains in place
+- TypeScript server lives under `server/`
+- AI access is behind server routes
+- frontend and server contracts are typed through `shared/ai/contracts.ts`
 
-Recommended first server files:
+Current AI server files:
 - `server/index.ts`
 - `server/routes/ai.ts`
-- `server/openai/client.ts`
-- `server/openai/schemas.ts`
-- `server/openai/expand.ts`
-- `server/openai/decompose.ts`
+- `server/llm/client.ts`
+- `server/llm/config.ts`
+- `server/llm/schemas.ts`
+- `server/llm/expand.ts`
+- `server/llm/decompose.ts`
+- `server/llm/validation.ts`
+
+Deprecated provider-specific files still exist under `server/openai/*` and should not be treated as the active integration path.
 
 ## First Vertical Slice
 
@@ -207,12 +211,12 @@ Add:
 
 Do not add AI yet.
 
-### Slice 3: Server And OpenAI Integration
+### Slice 3: Server And LLM Integration
 
-Add:
-- minimal Node/TypeScript server
-- one `POST /api/ai/expand` endpoint
-- strict JSON schema validation on server
+Status:
+- minimal Node/TypeScript server exists
+- `POST /api/ai/expand` and `POST /api/ai/decompose` exist
+- strict JSON schema generation plus server-side validation exist
 
 ### Slice 4: Expansion Review UI
 
@@ -240,7 +244,7 @@ Then:
 ## Anti-Patterns To Avoid During Migration
 
 - do not overload `Task` with pending AI response blobs
-- do not put OpenAI calls directly in React components
+- do not put provider calls directly in React components
 - do not make board columns represent AI lifecycle
 - do not build subtasks before the acceptance model works
 - do not try to solve sync, auth, and collaboration before the first AI slice proves value

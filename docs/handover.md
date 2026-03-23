@@ -78,13 +78,18 @@ What is worth keeping:
 - pure domain tests in `src/features/tasks/*`
 
 What should now be treated as temporary:
-- local-only persistence via `localStorage`
-- no backend or API layer
-- no capture or triage stage before a task is committed
-- no AI suggestion model
-- no subtask tree
-- no structured AI contracts
+- local-only persistence via `localStorage` for core task data
+- incomplete capture or triage stage before a task is committed
+- incomplete persistence story for suggestion sets and acceptance state
+- deprecated provider-specific files under `server/openai/*`
 - next priority set to board polish
+
+What already exists now:
+- backend or API layer under `server/`
+- typed AI routes under `/api/ai/*`
+- shared AI contracts under `shared/ai/contracts.ts`
+- provider-agnostic `server/llm/*` integration layer
+- server-side structured-output validation
 
 ## Existing Issues To Carry Forward
 
@@ -111,6 +116,14 @@ That means:
 - use `docs/architecture/implementation-bridge.md`
 - keep the current task and board logic as the execution foundation
 - build `capture item -> expand with AI -> review -> accept selected fields -> commit to task`
+
+## Follow-Up Task To Carry Forward
+
+A future cleanup task is now explicitly deferred to handover:
+
+`Simplify the current multi-provider LLM layer to OpenRouter-only, remove OpenAI fallback/config paths, update docs and env handling accordingly, and keep the same structured-output safety guarantees.`
+
+This is a follow-up task, not the current documentation-alignment task.
 
 ## New Core User Flow
 
@@ -327,4 +340,4 @@ For the next stage:
 
 If another chat picks this up directly, the best next instruction is:
 
-`Implement the first vertical slice for the AI-assisted task execution app: add capture items, add a server-side OpenAI Responses API integration for Expand with AI, return strict structured output for review, and allow accepting selected fields into a committed task without changing board semantics yet.`
+`Continue the AI-assisted task execution app implementation from the current server-backed baseline: keep `/api/ai/*` on the backend, preserve strict structured output and server-side validation, and implement the next vertical slice without weakening explicit review and acceptance.`

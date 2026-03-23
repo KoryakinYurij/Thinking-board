@@ -12,9 +12,14 @@ import {
   acceptExpansionSuggestion,
   rejectSuggestion,
 } from '../acceptance/suggestions'
-import { isOpenAIConfigured } from '../openai/client'
-import { generateDecompositionSuggestion } from '../openai/decompose'
-import { generateExpansionSuggestion } from '../openai/expand'
+import {
+  generateDecompositionSuggestion,
+  generateExpansionSuggestion,
+  getProviderName,
+  isLlmConfigured,
+  LlmParseError,
+  LlmValidationError,
+} from '../llm'
 
 const aiRouter = Router()
 
@@ -22,9 +27,10 @@ aiRouter.post('/expand', async (request, response) => {
   try {
     const parsedRequest = expandRequestSchema.parse(request.body)
 
-    if (!isOpenAIConfigured()) {
+    if (!isLlmConfigured()) {
       response.status(503).json({
-        error: 'OpenAI is not configured. Set OPENAI_API_KEY before using /api/ai/expand.',
+        error:
+          'LLM provider is not configured. Set OPENAI_API_KEY or OPENROUTER_API_KEY before using /api/ai/expand.',
       })
       return
     }
@@ -40,6 +46,23 @@ aiRouter.post('/expand', async (request, response) => {
       return
     }
 
+    if (error instanceof LlmParseError) {
+      response.status(502).json({
+        error: 'LLM returned invalid JSON output',
+        provider: getProviderName(),
+      })
+      return
+    }
+
+    if (error instanceof LlmValidationError) {
+      response.status(502).json({
+        error: 'LLM output failed validation',
+        provider: getProviderName(),
+        details: error.cause instanceof ZodError ? error.cause.issues : undefined,
+      })
+      return
+    }
+
     response.status(500).json({
       error:
         error instanceof Error ? error.message : 'Unexpected AI expansion error',
@@ -51,10 +74,10 @@ aiRouter.post('/decompose', async (request, response) => {
   try {
     const parsedRequest = decomposeRequestSchema.parse(request.body)
 
-    if (!isOpenAIConfigured()) {
+    if (!isLlmConfigured()) {
       response.status(503).json({
         error:
-          'OpenAI is not configured. Set OPENAI_API_KEY before using /api/ai/decompose.',
+          'LLM provider is not configured. Set OPENAI_API_KEY or OPENROUTER_API_KEY before using /api/ai/decompose.',
       })
       return
     }
@@ -66,6 +89,23 @@ aiRouter.post('/decompose', async (request, response) => {
       response.status(400).json({
         error: 'Invalid decompose request payload',
         issues: error.issues,
+      })
+      return
+    }
+
+    if (error instanceof LlmParseError) {
+      response.status(502).json({
+        error: 'LLM returned invalid JSON output',
+        provider: getProviderName(),
+      })
+      return
+    }
+
+    if (error instanceof LlmValidationError) {
+      response.status(502).json({
+        error: 'LLM output failed validation',
+        provider: getProviderName(),
+        details: error.cause instanceof ZodError ? error.cause.issues : undefined,
       })
       return
     }

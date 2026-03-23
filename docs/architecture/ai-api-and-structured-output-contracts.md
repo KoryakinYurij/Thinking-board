@@ -4,16 +4,27 @@
 
 This document defines the MVP contract for built-in AI actions so the frontend, backend, and future agents use the same shape and safety rules.
 
-## Provider Lock For MVP
+## Provider Strategy For MVP
 
-The MVP should standardize on:
-- OpenAI `Responses API`
+The MVP uses a backend `LLM` layer that keeps the frontend provider-agnostic while preserving the same safety bar:
 - official OpenAI Node SDK on the server
+- `Responses API`
 - `text.format` with `json_schema` and `strict: true` for structured generation
-- optional OpenAI `file_search` only after the first vertical slice proves value
-- `background: true` for long-running decomposition requests when needed
+- manual server-side validation against the shared Zod contracts before suggestion output is accepted as app data
 
-This is intentionally provider-specific for the first implementation slice. Abstraction can come later if it is justified.
+Supported providers:
+- OpenAI via `OPENAI_API_KEY`
+- OpenRouter via `OPENROUTER_API_KEY`
+
+Provider selection rules:
+- `LLM_PROVIDER=openai` forces OpenAI
+- `LLM_PROVIDER=openrouter` forces OpenRouter
+- if no explicit provider is set, the server auto-detects a configured provider
+
+Important:
+- the frontend still must not know provider-specific request details
+- the server must not rely on SDK auto-parse helpers as the only safety mechanism
+- strict schema generation remains required even when the provider changes
 
 ## Design Principles
 
@@ -22,7 +33,7 @@ This is intentionally provider-specific for the first implementation slice. Abst
 - acceptance should be a separate explicit write
 - prompts, outputs, and acceptance events should be traceable
 - failed AI operations should not leave partial committed writes
-- frontend must not call OpenAI directly
+- frontend must not call LLM providers directly
 
 ## MVP Actions
 
@@ -53,20 +64,17 @@ Expected output sections:
 - optional dependencies
 - optional effort hints
 
-## Chosen Model Strategy
+## Current Model Strategy
 
-Default model for the first production-quality slice:
-- `gpt-5.4`
+Current implementation uses provider-configured models:
+- OpenAI default: `gpt-5`
+- OpenRouter default: `openai/gpt-5`
 
-Reason:
-- OpenAI currently recommends starting with `gpt-5.4` if you are unsure and need complex reasoning.
+These defaults can be overridden through environment variables.
 
-Fallback optimization path after evals:
-- try `gpt-5-mini` for lower-latency or lower-cost workloads only after acceptance quality is measured.
-
-Practical rule:
-- use `gpt-5.4` for `expand` and `decompose` in the first slice
-- introduce smaller-model routing only after eval results justify it
+Important:
+- model choice is currently configuration-driven, not hard-coded per route
+- smaller or alternate models should only be introduced after eval quality is measured
 
 ## Suggested Backend Endpoints
 
@@ -140,13 +148,13 @@ Recommended next action shape:
 - `title`
 - `why_now`
 
-## OpenAI Request Strategy
+## Request Strategy
 
 ### Expand
 
 Use:
 - `responses.create`
-- `model: "gpt-5.4"`
+- provider-configured model
 - `text.format.type: "json_schema"`
 - `text.format.strict: true`
 - no tool calling in the first slice unless retrieval is required
@@ -165,10 +173,10 @@ Recommended schema root fields:
 
 Use:
 - `responses.create`
-- `model: "gpt-5.4"`
+- provider-configured model
 - `text.format.type: "json_schema"`
 - `text.format.strict: true`
-- `background: true` when the prompt is long or the expected plan is large
+- no background mode is currently implemented in the server layer
 
 Recommended schema root fields:
 - `summary`
@@ -187,7 +195,7 @@ Enable only when:
 - evals show that context-free output is not good enough
 
 When enabled:
-- use the OpenAI hosted `file_search` tool through the Responses API
+- use provider-specific hosted retrieval only through the backend LLM layer
 - scope search to explicit vector stores only
 
 ## Acceptance Rules
@@ -207,7 +215,7 @@ When enabled:
 - persist the review state
 - persist the acceptance result
 - persist the provider model id used for the run
-- persist whether the run used `background` mode
+- persist the upstream provider response id when available
 
 ## Failure Rules
 
@@ -219,7 +227,7 @@ When enabled:
 
 ## Server Validation Rules
 
-- validate incoming app payloads before calling OpenAI
+- validate incoming app payloads before calling the provider
 - validate model output against the same schema before storing it as a suggestion set
 - reject partial malformed outputs instead of guessing missing fields
 - version schemas so old suggestion sets remain interpretable
@@ -232,8 +240,8 @@ The frontend should only know about:
 - app-level acceptance DTOs
 
 The frontend should not know:
-- the OpenAI SDK call shape
-- raw OpenAI auth handling
+- the provider SDK call shape
+- raw provider auth handling
 - vector store ids
 - provider-specific retry logic
 

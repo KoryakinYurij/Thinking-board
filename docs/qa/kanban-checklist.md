@@ -50,6 +50,8 @@ This checklist is the minimum regression pass for committed execution behavior. 
 
 - failed create, accept, update, or move operations leave the UI in a consistent state
 - failed AI calls do not partially mutate canonical task data
+- invalid or schema-mismatched AI output returns a recoverable error state
+- missing LLM provider configuration returns a clear non-destructive error state
 - loading states do not permit duplicate destructive actions
 - empty states are clear and do not look broken
 

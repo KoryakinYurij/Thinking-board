@@ -29,6 +29,8 @@ This checklist is the minimum quality bar for AI-assisted expansion and decompos
 - rejected suggestions do not leak into canonical task data
 - repeated acceptance does not duplicate subtasks or fields
 - failed AI actions do not corrupt the linked task or capture item
+- malformed provider output is rejected before it can become a suggestion payload
+- provider misconfiguration does not mutate linked task or capture state
 
 ## UX Quality
 

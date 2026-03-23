@@ -7,6 +7,8 @@ AI-assisted task execution app with disciplined execution surfaces.
 - React
 - TypeScript
 - Vite
+- Express server
+- OpenAI Node SDK
 
 ## Product stance
 
@@ -20,11 +22,29 @@ AI-assisted task execution app with disciplined execution surfaces.
 
 ```bash
 npm install
-npm run dev
+npm run dev         # client dev server
+npm run dev:server  # API server
 npm run build
 npm run lint
 npm test
 ```
+
+## LLM Configuration
+
+Current implementation supports these backend providers:
+- OpenRouter via `OPENROUTER_API_KEY`
+- OpenAI via `OPENAI_API_KEY`
+
+Optional configuration:
+- `LLM_PROVIDER=openrouter|openai`
+- `OPENROUTER_MODEL`, `OPENROUTER_BASE_URL`, `OPENROUTER_REFERER`, `OPENROUTER_TITLE`
+- `OPENAI_MODEL`, `OPENAI_BASE_URL`
+
+Current auto-detection behavior:
+- prefers OpenRouter when both providers are configured
+- otherwise uses the configured provider
+
+AI requests go through the server under `/api/ai/*`; the frontend does not call the provider directly.
 
 ## Project docs
 
