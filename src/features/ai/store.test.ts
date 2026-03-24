@@ -9,6 +9,7 @@ import type { ExpandResponse } from '../../../shared/ai/contracts'
 
 function makeExpandResponse(overrides: Partial<ExpandResponse> = {}): ExpandResponse {
   return {
+    suggestionSetId: overrides.suggestionSetId ?? 'suggestion-expand-1',
     suggestion: {
       summary: 'Clarify the intent before execution.',
       normalizedTitle: 'Clarify the AI task workflow',

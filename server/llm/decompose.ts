@@ -8,7 +8,10 @@ import { getLlmClient } from './client'
 import { decomposeSuggestionTextFormat } from './schemas'
 import { validateLlmOutput } from './validation'
 
-export async function generateDecompositionSuggestion(input: DecomposeRequest) {
+export async function generateDecompositionSuggestion(
+  input: DecomposeRequest,
+  suggestionSetId: string,
+) {
   const request = decomposeRequestSchema.parse(input)
   const client = getLlmClient()
 
@@ -26,6 +29,7 @@ export async function generateDecompositionSuggestion(input: DecomposeRequest) {
   )
 
   return decomposeResponseSchema.parse({
+    suggestionSetId,
     suggestion,
     model: response.model,
     responseId: response.responseId,

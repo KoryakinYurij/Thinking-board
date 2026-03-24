@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { randomUUID } from 'node:crypto'
 import { ZodError } from 'zod'
 import {
   acceptDecompositionSuggestionRequestSchema,
@@ -20,6 +21,11 @@ import {
   LlmParseError,
   LlmValidationError,
 } from '../llm'
+import {
+  getSuggestionSet,
+  saveSuggestionSet,
+  updateSuggestionSetStatus,
+} from '../store/suggestions'
 
 const aiRouter = Router()
 
@@ -35,7 +41,25 @@ aiRouter.post('/expand', async (request, response) => {
       return
     }
 
-    const result = await generateExpansionSuggestion(parsedRequest)
+    const suggestionSetId = randomUUID()
+    const result = await generateExpansionSuggestion(parsedRequest, suggestionSetId)
+
+    saveSuggestionSet({
+      id: result.suggestionSetId,
+      sourceEntityType: parsedRequest.sourceEntityType,
+      sourceEntityId: parsedRequest.sourceEntityId ?? 'unknown',
+      kind: 'expansion',
+      status: 'pending',
+      payload: result.suggestion,
+      model: result.model,
+      responseId: result.responseId,
+      errorMessage: null,
+      acceptedFields: [],
+      schemaVersion: 'v1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
     response.json(result)
   } catch (error) {
     if (error instanceof ZodError) {
@@ -82,7 +106,25 @@ aiRouter.post('/decompose', async (request, response) => {
       return
     }
 
-    const result = await generateDecompositionSuggestion(parsedRequest)
+    const suggestionSetId = randomUUID()
+    const result = await generateDecompositionSuggestion(parsedRequest, suggestionSetId)
+
+    saveSuggestionSet({
+      id: result.suggestionSetId,
+      sourceEntityType: 'task',
+      sourceEntityId: parsedRequest.taskId,
+      kind: 'decomposition',
+      status: 'pending',
+      payload: result.suggestion,
+      model: result.model,
+      responseId: result.responseId,
+      errorMessage: null,
+      acceptedFields: [],
+      schemaVersion: 'v1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
     response.json(result)
   } catch (error) {
     if (error instanceof ZodError) {
@@ -117,23 +159,61 @@ aiRouter.post('/decompose', async (request, response) => {
   }
 })
 
+aiRouter.get('/suggestions/:id', (request, response) => {
+  const suggestionSet = getSuggestionSet(request.params.id)
+
+  if (!suggestionSet) {
+    response.status(404).json({
+      error: 'Suggestion set not found',
+    })
+    return
+  }
+
+  response.json(suggestionSet)
+})
+
 aiRouter.post('/suggestions/:id/accept', (request, response) => {
   try {
+    const suggestionSetId = request.params.id
+    const stored = getSuggestionSet(suggestionSetId)
+
+    if (!stored) {
+      response.status(404).json({
+        error: 'Suggestion set not found',
+      })
+      return
+    }
+
+    if (stored.status !== 'pending') {
+      response.status(409).json({
+        error: `Suggestion set is already ${stored.status}`,
+      })
+      return
+    }
+
     const payload =
       request.body?.kind === 'decomposition'
         ? acceptDecompositionSuggestionRequestSchema.parse({
             ...request.body,
-            suggestionSetId: request.params.id,
+            suggestionSetId,
+            suggestion: stored.payload,
           })
         : acceptExpansionSuggestionRequestSchema.parse({
             ...request.body,
-            suggestionSetId: request.params.id,
+            suggestionSetId,
+            suggestion: stored.payload,
           })
 
     const result =
       payload.kind === 'decomposition'
         ? acceptDecompositionSuggestion(payload)
         : acceptExpansionSuggestion(payload)
+
+    updateSuggestionSetStatus(
+      result.suggestionSetId,
+      result.reviewStatus,
+      result.acceptedFields as string[],
+    )
 
     response.json(result)
   } catch (error) {
@@ -154,12 +234,33 @@ aiRouter.post('/suggestions/:id/accept', (request, response) => {
 
 aiRouter.post('/suggestions/:id/reject', (request, response) => {
   try {
+    const suggestionSetId = request.params.id
+    const stored = getSuggestionSet(suggestionSetId)
+
+    if (!stored) {
+      response.status(404).json({
+        error: 'Suggestion set not found',
+      })
+      return
+    }
+
+    if (stored.status !== 'pending') {
+      response.status(409).json({
+        error: `Suggestion set is already ${stored.status}`,
+      })
+      return
+    }
+
     const payload = rejectSuggestionRequestSchema.parse({
       ...request.body,
-      suggestionSetId: request.params.id,
+      suggestionSetId,
     })
 
-    response.json(rejectSuggestion(payload))
+    const result = rejectSuggestion(payload)
+
+    updateSuggestionSetStatus(result.suggestionSetId, 'rejected')
+
+    response.json(result)
   } catch (error) {
     if (error instanceof ZodError) {
       response.status(400).json({

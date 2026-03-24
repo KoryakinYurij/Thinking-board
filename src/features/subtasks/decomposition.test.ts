@@ -32,6 +32,7 @@ describe('decomposition contract coverage', () => {
 
     it('accepts the frozen decompose response shape', () => {
       const parsed = decomposeResponseSchema.parse({
+        suggestionSetId: 'suggestion-decompose-1',
         suggestion: {
           summary: 'Turn the task into a short execution plan.',
           subtasks: [
