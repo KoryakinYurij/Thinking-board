@@ -200,6 +200,22 @@ label {
   min-width: 0;
 }
 
+.field-error {
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--tone-high) 72%, var(--ink) 28%);
+}
+
+input[aria-invalid],
+textarea[aria-invalid] {
+  border-color: color-mix(in srgb, var(--tone-high) 56%, var(--ink) 44%);
+}
+
+input[aria-invalid]:focus-visible,
+textarea[aria-invalid]:focus-visible {
+  outline-color: color-mix(in srgb, var(--tone-high) 50%, white 50%);
+  border-color: var(--tone-high);
+}
+
 label span {
   font-size: 0.74rem;
   text-transform: uppercase;

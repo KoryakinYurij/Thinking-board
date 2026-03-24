@@ -332,14 +332,18 @@ type EditableTitleFieldProps = {
 
 function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
   const [titleDraft, setTitleDraft] = useState(task.title)
+  const [titleError, setTitleError] = useState<string | null>(null)
 
   function commitTitleDraft() {
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
+      setTitleError('Title cannot be empty.')
       setTitleDraft(task.title)
       return
     }
+
+    setTitleError(null)
 
     if (trimmedTitle !== task.title) {
       onPatchTask(task.id, { title: trimmedTitle })
@@ -354,7 +358,13 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
       <input
         value={titleDraft}
         maxLength={120}
-        onChange={(event) => setTitleDraft(event.target.value)}
+        aria-invalid={titleError ? true : undefined}
+        onChange={(event) => {
+          setTitleDraft(event.target.value)
+          if (titleError) {
+            setTitleError(null)
+          }
+        }}
         onBlur={commitTitleDraft}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
@@ -362,6 +372,9 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
           }
         }}
       />
+      {titleError ? (
+        <span className="field-error" role="alert">{titleError}</span>
+      ) : null}
     </label>
   )
 }
@@ -382,6 +395,7 @@ function EditableSubtaskCard({
   onDeleteTask,
 }: EditableSubtaskCardProps) {
   const [titleDraft, setTitleDraft] = useState(subtask.title)
+  const [titleError, setTitleError] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState(subtask.description)
   const dueState = getDueState(subtask.dueAt, subtask.status === 'done')
 
@@ -389,9 +403,12 @@ function EditableSubtaskCard({
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
+      setTitleError('Title cannot be empty.')
       setTitleDraft(subtask.title)
       return
     }
+
+    setTitleError(null)
 
     if (trimmedTitle !== subtask.title) {
       onPatchTask(subtask.id, { title: trimmedTitle })
@@ -441,7 +458,13 @@ function EditableSubtaskCard({
           <input
             value={titleDraft}
             maxLength={120}
-            onChange={(event) => setTitleDraft(event.target.value)}
+            aria-invalid={titleError ? true : undefined}
+            onChange={(event) => {
+              setTitleDraft(event.target.value)
+              if (titleError) {
+                setTitleError(null)
+              }
+            }}
             onBlur={commitTitleDraft}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
@@ -449,6 +472,9 @@ function EditableSubtaskCard({
               }
             }}
           />
+          {titleError ? (
+            <span className="field-error" role="alert">{titleError}</span>
+          ) : null}
         </label>
 
         <label className="subtask-notes-field">
