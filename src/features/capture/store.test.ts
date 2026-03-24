@@ -34,6 +34,40 @@ describe('capture item store', () => {
     })
   })
 
+  it('returns original items when raw text is empty or only whitespace', () => {
+    const original = [makeCaptureItem()]
+    const next = createCaptureItem(original, '   \n \t  ')
+    expect(next).toBe(original)
+  })
+
+  it('correctly initializes all fields of a new capture item', () => {
+    const timestamp = '2026-03-20T12:00:00.000Z'
+    const next = createCaptureItem([], 'Field check', timestamp, () => 'fixed-id')
+
+    expect(next[0]).toEqual({
+      id: 'fixed-id',
+      rawText: 'Field check',
+      normalizedTitle: 'Field check',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      archivedAt: null,
+    })
+  })
+
+  it('prepends the new item and maintains sort order by updatedAt', () => {
+    const olderItem = makeCaptureItem({
+      id: 'older',
+      updatedAt: '2026-03-20T10:00:00.000Z',
+    })
+    const newerTimestamp = '2026-03-20T11:00:00.000Z'
+
+    const next = createCaptureItem([olderItem], 'Newer item', newerTimestamp, () => 'newer')
+
+    expect(next).toHaveLength(2)
+    expect(next[0].id).toBe('newer')
+    expect(next[1].id).toBe('older')
+  })
+
   it('updates normalized title when raw text changes', () => {
     const next = patchCaptureItem(
       [makeCaptureItem()],
