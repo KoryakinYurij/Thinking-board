@@ -10,6 +10,7 @@ import {
   patchTask,
   restoreTask,
   setTaskStatus,
+  sortTasks,
 } from './board'
 import type { Task } from './model'
 
@@ -302,5 +303,60 @@ describe('task board operations', () => {
       parentTaskId: 'parent',
       status: 'in_progress',
     })
+  })
+})
+
+describe('sortTasks', () => {
+  it('sorts active tasks before archived tasks', () => {
+    const tasks = [
+      makeTask({ id: 'archived', archivedAt: '2026-03-19T15:00:00.000Z' }),
+      makeTask({ id: 'active', archivedAt: null }),
+    ]
+
+    const sorted = sortTasks(tasks)
+    expect(sorted.map((t) => t.id)).toEqual(['active', 'archived'])
+  })
+
+  it('sorts tasks by status order', () => {
+    const tasks = [
+      makeTask({ id: 'done', status: 'done' }),
+      makeTask({ id: 'todo', status: 'todo' }),
+      makeTask({ id: 'progress', status: 'in_progress' }),
+    ]
+
+    const sorted = sortTasks(tasks)
+    expect(sorted.map((t) => t.id)).toEqual(['todo', 'progress', 'done'])
+  })
+
+  it('sorts tasks by priority when positions are equal', () => {
+    const tasks = [
+      makeTask({ id: 'low', priority: 'low', position: 1000 }),
+      makeTask({ id: 'high', priority: 'high', position: 1000 }),
+      makeTask({ id: 'medium', priority: 'medium', position: 1000 }),
+    ]
+
+    const sorted = sortTasks(tasks)
+    expect(sorted.map((t) => t.id)).toEqual(['high', 'medium', 'low'])
+  })
+
+  it('sorts tasks by position even if priorities differ', () => {
+    const tasks = [
+      makeTask({ id: 'low-pos-2', priority: 'low', position: 2000 }),
+      makeTask({ id: 'high-pos-1', priority: 'high', position: 1000 }),
+    ]
+
+    const sorted = sortTasks(tasks)
+    expect(sorted.map((t) => t.id)).toEqual(['high-pos-1', 'low-pos-2'])
+  })
+
+  it('preserves stable sort for identical status, priority, and position', () => {
+    const tasks = [
+      makeTask({ id: 'task-1', status: 'todo', priority: 'medium', position: 1000 }),
+      makeTask({ id: 'task-2', status: 'todo', priority: 'medium', position: 1000 }),
+    ]
+
+    const sorted = sortTasks(tasks)
+    // Array.sort is stable in modern JS engines
+    expect(sorted.map((t) => t.id)).toEqual(['task-1', 'task-2'])
   })
 })
