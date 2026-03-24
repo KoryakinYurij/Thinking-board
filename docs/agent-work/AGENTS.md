@@ -12,29 +12,19 @@ This folder contains handoff-ready briefs for large parallel workstreams in the 
 
 ## Recommended Assignment Order
 
-1. `01-foundation-hardening.md`
-2. `02-capture-expand-vertical-slice.md`
-3. `03-decomposition-review-acceptance.md`
+1. `03-decomposition-review-acceptance.md`
 
 ## Brief Index
 
-- `01-foundation-hardening.md`
-  Stabilize current persistence, validation, and keyboard behavior before more AI-facing work lands.
-- `02-capture-expand-vertical-slice.md`
-  Deliver the first end-to-end AI slice: capture item to expansion review to selective acceptance into committed task data.
 - `03-decomposition-review-acceptance.md`
   Deliver decomposition review and partial acceptance into canonical subtasks without polluting committed work.
 
 ## Coordination Rules
 
-- `01-foundation-hardening.md` should land first or at minimum define any shared storage and validation changes before the other briefs branch deeply.
-- `02-capture-expand-vertical-slice.md` depends on stable capture, task, and suggestion persistence behavior.
-- `03-decomposition-review-acceptance.md` depends on the acceptance model and suggestion review patterns proven in the expansion slice.
+- `03-decomposition-review-acceptance.md` assumes the already-landed foundation and expansion slices remain the reference pattern for suggestion review and acceptance behavior.
 
 ## Recommended Agent Types
 
-- `01-foundation-hardening.md`: `fullstack-developer`
-- `02-capture-expand-vertical-slice.md`: `fullstack-developer`
 - `03-decomposition-review-acceptance.md`: `fullstack-developer`
 
 Use `test-automator` after each brief closes to lock regression coverage.

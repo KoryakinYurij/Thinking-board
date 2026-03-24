@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  getLatestSuggestionSet,
+  recordDecompositionSuggestion,
   getLatestExpansionSuggestionSet,
   recordExpansionSuggestion,
   recordFailedExpansionSuggestion,
   updateExpansionSuggestionStatus,
 } from './store'
-import type { ExpandResponse } from '../../../shared/ai/contracts'
+import type { DecomposeResponse, ExpandResponse } from '../../../shared/ai/contracts'
 
 function makeExpandResponse(overrides: Partial<ExpandResponse> = {}): ExpandResponse {
   return {
@@ -25,6 +27,23 @@ function makeExpandResponse(overrides: Partial<ExpandResponse> = {}): ExpandResp
   }
 }
 
+function makeDecomposeResponse(
+  overrides: Partial<DecomposeResponse> = {},
+): DecomposeResponse {
+  return {
+    suggestionSetId: overrides.suggestionSetId ?? 'suggestion-decompose-1',
+    suggestion: {
+      summary: 'Break the task into steps.',
+      subtasks: [],
+      nextActions: [],
+      dependencies: [],
+      notes: [],
+    },
+    model: overrides.model ?? 'gpt-5',
+    responseId: overrides.responseId ?? 'resp_decompose_123',
+  }
+}
+
 describe('AI suggestion store', () => {
   it('records a pending expansion suggestion set', () => {
     const next = recordExpansionSuggestion(
@@ -35,11 +54,10 @@ describe('AI suggestion store', () => {
         response: makeExpandResponse(),
       },
       '2026-03-20T12:00:00.000Z',
-      () => 'suggestion-1',
     )
 
     expect(next[0]).toMatchObject({
-      id: 'suggestion-1',
+      id: 'suggestion-expand-1',
       sourceEntityType: 'task',
       sourceEntityId: 'task-1',
       status: 'pending',
@@ -77,12 +95,11 @@ describe('AI suggestion store', () => {
         response: makeExpandResponse(),
       },
       '2026-03-20T12:00:00.000Z',
-      () => 'suggestion-1',
     )
 
     const next = updateExpansionSuggestionStatus(
       created,
-      'suggestion-1',
+      'suggestion-expand-1',
       'partially_accepted',
       ['normalized_title'],
       '2026-03-20T12:06:00.000Z',
@@ -102,22 +119,47 @@ describe('AI suggestion store', () => {
         {
           sourceEntityType: 'task',
           sourceEntityId: 'task-1',
-          response: makeExpandResponse({ responseId: 'resp_old' }),
+          response: makeExpandResponse({
+            suggestionSetId: 'suggestion-old',
+            responseId: 'resp_old',
+          }),
         },
         '2026-03-20T12:00:00.000Z',
-        () => 'suggestion-old',
       ),
       {
         sourceEntityType: 'task',
         sourceEntityId: 'task-1',
-        response: makeExpandResponse({ responseId: 'resp_new' }),
+        response: makeExpandResponse({
+          suggestionSetId: 'suggestion-new',
+          responseId: 'resp_new',
+        }),
       },
       '2026-03-20T12:10:00.000Z',
-      () => 'suggestion-new',
     )
 
     expect(getLatestExpansionSuggestionSet(items, 'task', 'task-1')?.id).toBe(
       'suggestion-new',
     )
+  })
+
+  it('reuses the server-issued suggestionSetId instead of generating a local one', () => {
+    const next = recordExpansionSuggestion([], {
+      sourceEntityType: 'capture_item',
+      sourceEntityId: 'capture-1',
+      response: makeExpandResponse({ suggestionSetId: 'server-issued-id' }),
+    })
+
+    expect(next[0]?.id).toBe('server-issued-id')
+  })
+
+  it('reuses the server-issued suggestionSetId for decomposition suggestions too', () => {
+    const items = recordDecompositionSuggestion([], {
+      sourceEntityId: 'task-1',
+      response: makeDecomposeResponse({ suggestionSetId: 'decompose-server-id' }),
+    })
+
+    expect(
+      getLatestSuggestionSet(items, 'decomposition', 'task', 'task-1')?.id,
+    ).toBe('decompose-server-id')
   })
 })

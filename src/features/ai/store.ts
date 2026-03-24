@@ -23,10 +23,9 @@ export function recordExpansionSuggestion(
   items: SuggestionSet[],
   input: ExpansionSuggestionRecordInput,
   timestamp = new Date().toISOString(),
-  createId: () => string = () => crypto.randomUUID(),
 ) {
   const nextItem: ExpansionSuggestionSet = {
-    id: createId(),
+    id: input.response.suggestionSetId,
     sourceEntityType: input.sourceEntityType,
     sourceEntityId: input.sourceEntityId,
     kind: 'expansion',
@@ -41,7 +40,7 @@ export function recordExpansionSuggestion(
     updatedAt: timestamp,
   }
 
-  return sortSuggestionSets([nextItem, ...items])
+  return sortSuggestionSets([nextItem, ...items.filter((item) => item.id !== nextItem.id)])
 }
 
 export function recordFailedExpansionSuggestion(
@@ -73,10 +72,9 @@ export function recordDecompositionSuggestion(
   items: SuggestionSet[],
   input: DecompositionSuggestionRecordInput,
   timestamp = new Date().toISOString(),
-  createId: () => string = () => crypto.randomUUID(),
 ) {
   const nextItem: DecompositionSuggestionSet = {
-    id: createId(),
+    id: input.response.suggestionSetId,
     sourceEntityType: 'task',
     sourceEntityId: input.sourceEntityId,
     kind: 'decomposition',
@@ -91,7 +89,7 @@ export function recordDecompositionSuggestion(
     updatedAt: timestamp,
   }
 
-  return sortSuggestionSets([nextItem, ...items])
+  return sortSuggestionSets([nextItem, ...items.filter((item) => item.id !== nextItem.id)])
 }
 
 export function recordFailedDecompositionSuggestion(
