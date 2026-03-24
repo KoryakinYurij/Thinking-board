@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import TaskDecompositionPanel from './TaskDecompositionPanel'
 import TaskExpansionPanel from './TaskExpansionPanel'
 import type {
@@ -333,13 +333,23 @@ type EditableTitleFieldProps = {
 function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
   const [titleDraft, setTitleDraft] = useState(task.title)
   const [titleError, setTitleError] = useState<string | null>(null)
+  const revertedRef = useRef(false)
 
   function commitTitleDraft() {
+    if (revertedRef.current) {
+      revertedRef.current = false
+      return
+    }
+
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
-      setTitleError('Title cannot be empty.')
-      setTitleDraft(task.title)
+      if (!titleError) {
+        setTitleError('Title cannot be empty.')
+      } else {
+        setTitleDraft(task.title)
+        setTitleError(null)
+      }
       return
     }
 
@@ -350,6 +360,12 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
     }
 
     setTitleDraft(trimmedTitle)
+  }
+
+  function revertTitleDraft() {
+    revertedRef.current = true
+    setTitleDraft(task.title)
+    setTitleError(null)
   }
 
   return (
@@ -368,6 +384,10 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
         onBlur={commitTitleDraft}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
+            event.currentTarget.blur()
+          }
+          if (event.key === 'Escape') {
+            revertTitleDraft()
             event.currentTarget.blur()
           }
         }}
@@ -397,14 +417,24 @@ function EditableSubtaskCard({
   const [titleDraft, setTitleDraft] = useState(subtask.title)
   const [titleError, setTitleError] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState(subtask.description)
+  const revertedRef = useRef(false)
   const dueState = getDueState(subtask.dueAt, subtask.status === 'done')
 
   function commitTitleDraft() {
+    if (revertedRef.current) {
+      revertedRef.current = false
+      return
+    }
+
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
-      setTitleError('Title cannot be empty.')
-      setTitleDraft(subtask.title)
+      if (!titleError) {
+        setTitleError('Title cannot be empty.')
+      } else {
+        setTitleDraft(subtask.title)
+        setTitleError(null)
+      }
       return
     }
 
@@ -415,6 +445,12 @@ function EditableSubtaskCard({
     }
 
     setTitleDraft(trimmedTitle)
+  }
+
+  function revertTitleDraft() {
+    revertedRef.current = true
+    setTitleDraft(subtask.title)
+    setTitleError(null)
   }
 
   function commitNotesDraft() {
@@ -468,6 +504,10 @@ function EditableSubtaskCard({
             onBlur={commitTitleDraft}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
+                event.currentTarget.blur()
+              }
+              if (event.key === 'Escape') {
+                revertTitleDraft()
                 event.currentTarget.blur()
               }
             }}
