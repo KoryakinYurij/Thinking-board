@@ -204,7 +204,7 @@ function buildAcceptedSubtaskDrafts(
 ) {
   const existingKeys = new Set(
     existingSubtasks.map(
-      (task) => `${task.title.trim()}::${task.description.trim()}`,
+      (task) => task.title.trim(),
     ),
   )
   const startingPosition =
@@ -215,7 +215,7 @@ function buildAcceptedSubtaskDrafts(
 
   return suggestion.subtasks
     .filter((subtask) => {
-      const key = `${subtask.title.trim()}::${subtask.description.trim()}`
+      const key = subtask.title.trim()
       return !existingKeys.has(key)
     })
     .map((subtask, index) => ({

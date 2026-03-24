@@ -87,7 +87,7 @@ function App() {
   const [selectedCaptureItemId, setSelectedCaptureItemId] =
     useState<string | null>(null)
   const [workspaceView, setWorkspaceView] =
-    useState<'inbox' | 'board' | 'archive'>('inbox')
+    useState<'inbox' | 'board' | 'archive' | 'focus'>('inbox')
   const [search, setSearch] = useState('')
   const [focusStatus, setFocusStatus] = useState<TaskStatusFilter>('all')
   const [priorityFilter, setPriorityFilter] =
@@ -732,6 +732,23 @@ function App() {
               onSelectTask={setSelectedTaskId}
               onRestoreTask={handleRestoreTask}
               onDeleteTask={handleDeleteTask}
+            />
+          ) : workspaceView === 'focus' ? (
+            <KanbanBoard
+              visibleStatuses={['in_progress', 'done']}
+              filteredColumns={filteredColumns}
+              allColumns={allColumns}
+              selectedTaskId={resolvedSelectedTaskId}
+              dragTaskId={dragTaskId}
+              dragTarget={dragTarget}
+              dragDisabled={dragDisabled}
+              onSelectTask={setSelectedTaskId}
+              onDragStart={setDragTaskId}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onSetTaskStatus={handleSetTaskStatus}
+              onMoveTask={handleMoveTask}
+              onMoveTaskWithinStatus={handleMoveTaskWithinStatus}
             />
           ) : (
             <KanbanBoard

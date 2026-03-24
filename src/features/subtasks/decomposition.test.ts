@@ -69,14 +69,3 @@ describe('decomposition contract coverage', () => {
   }
 })
 
-describe('decomposition helper coverage still missing in production', () => {
-  test.todo(
-    'partially accepts only selected decomposition fields such as subtasks or next-actions-notes',
-  )
-  test.todo(
-    'prevents repeated acceptance from duplicating canonical subtasks for the same suggestion set',
-  )
-  test.todo(
-    'keeps accepted subtasks out of top-level board columns and top-level reorder semantics',
-  )
-})

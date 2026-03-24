@@ -16,6 +16,11 @@ export function filterTasks(
   const normalizedSearch = search.trim().toLowerCase()
 
   return tasks.filter((task) => {
+    // Exclude subtasks from board filters
+    if (task.parentTaskId) {
+      return false
+    }
+
     const text = `${task.title} ${task.description}`.toLowerCase()
     const matchesSearch = text.includes(normalizedSearch)
     const matchesStatus = focusStatus === 'all' || task.status === focusStatus
@@ -53,12 +58,12 @@ export function getResolvedSelectedTaskId(
 }
 
 export function getTaskStats(tasks: Task[]) {
-  const openCount = tasks.filter((task) => task.status !== 'done').length
-  const doneCount = tasks.filter((task) => task.status === 'done').length
+  const openCount = tasks.filter((task) => task.status !== 'done' && !task.parentTaskId).length
+  const doneCount = tasks.filter((task) => task.status === 'done' && !task.parentTaskId).length
   const urgentCount = tasks.filter((task) =>
-    getDueState(task.dueAt, task.status === 'done').isUrgent,
+    getDueState(task.dueAt, task.status === 'done').isUrgent && !task.parentTaskId,
   ).length
-  const archivedCount = tasks.filter((task) => task.archivedAt).length
+  const archivedCount = tasks.filter((task) => task.archivedAt && !task.parentTaskId).length
 
   return {
     openCount,

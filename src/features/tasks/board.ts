@@ -117,7 +117,7 @@ export function setTaskStatus(
   const task = tasks.find((item) => item.id === taskId)
 
   if (task?.parentTaskId) {
-    return tasks.map((item) =>
+    const nextTasks = tasks.map((item) =>
       item.id === taskId
         ? {
             ...item,
@@ -127,6 +127,40 @@ export function setTaskStatus(
           }
         : item,
     )
+
+    // Check if parent should be completed
+    const siblings = nextTasks.filter(t => t.parentTaskId === task.parentTaskId && !t.archivedAt)
+    const allDone = siblings.length > 0 && siblings.every(t => t.status === 'done')
+
+    if (allDone) {
+      const parent = nextTasks.find(t => t.id === task.parentTaskId)
+      if (parent && parent.status !== 'done') {
+        return applyBoardMutation(nextTasks, (columns) => {
+          const movedParent = findAndRemoveTask(columns, task.parentTaskId!)
+          if (movedParent) {
+            movedParent.status = 'done'
+            movedParent.updatedAt = timestamp
+            movedParent.completedAt = timestamp
+            columns['done'].push(movedParent)
+          }
+        })
+      }
+    } else if (status !== 'done') {
+      const parent = nextTasks.find(t => t.id === task.parentTaskId)
+      if (parent && parent.status === 'done') {
+        return applyBoardMutation(nextTasks, (columns) => {
+          const movedParent = findAndRemoveTask(columns, task.parentTaskId!)
+          if (movedParent) {
+            movedParent.status = 'in_progress'
+            movedParent.updatedAt = timestamp
+            movedParent.completedAt = null
+            columns['in_progress'].push(movedParent)
+          }
+        })
+      }
+    }
+
+    return nextTasks
   }
 
   return applyBoardMutation(tasks, (columns) => {
