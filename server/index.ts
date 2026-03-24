@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import aiRouter from './routes/ai'
+import { errorHandler } from './middleware/errors'
 
 const app = express()
 const port = Number(process.env.PORT || 8787)
@@ -14,6 +15,8 @@ app.get('/api/health', (_request, response) => {
 })
 
 app.use('/api/ai', aiRouter)
+
+app.use(errorHandler)
 
 app.listen(port, () => {
   console.log(`AI server listening on http://localhost:${port}`)
