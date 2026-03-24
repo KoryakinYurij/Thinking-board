@@ -20,6 +20,11 @@ import {
   LlmParseError,
   LlmValidationError,
 } from '../llm'
+import {
+  getSuggestionSet,
+  saveSuggestionSet,
+  updateSuggestionSetStatus,
+} from '../store/suggestions'
 
 const aiRouter = Router()
 
@@ -117,6 +122,19 @@ aiRouter.post('/decompose', async (request, response) => {
   }
 })
 
+aiRouter.get('/suggestions/:id', (request, response) => {
+  const suggestionSet = getSuggestionSet(request.params.id)
+
+  if (!suggestionSet) {
+    response.status(404).json({
+      error: 'Suggestion set not found',
+    })
+    return
+  }
+
+  response.json(suggestionSet)
+})
+
 aiRouter.post('/suggestions/:id/accept', (request, response) => {
   try {
     const payload =
@@ -134,6 +152,32 @@ aiRouter.post('/suggestions/:id/accept', (request, response) => {
       payload.kind === 'decomposition'
         ? acceptDecompositionSuggestion(payload)
         : acceptExpansionSuggestion(payload)
+
+    const acceptedFields = result.acceptedFields as string[]
+    const allAccepted =
+      payload.kind === 'expansion'
+        ? acceptedFields.length === 2
+        : acceptedFields.length === 2
+
+    saveSuggestionSet({
+      id: result.suggestionSetId,
+      sourceEntityType:
+        payload.kind === 'expansion' ? payload.sourceEntityType : 'task',
+      sourceEntityId:
+        payload.kind === 'expansion'
+          ? payload.sourceEntityId
+          : payload.sourceEntityId,
+      kind: result.kind,
+      status: allAccepted ? 'accepted' : 'partially_accepted',
+      payload: payload.suggestion,
+      model: null,
+      responseId: null,
+      errorMessage: null,
+      acceptedFields: result.acceptedFields,
+      schemaVersion: 'v1',
+      createdAt: result.appliedAt,
+      updatedAt: result.appliedAt,
+    })
 
     response.json(result)
   } catch (error) {
@@ -159,7 +203,11 @@ aiRouter.post('/suggestions/:id/reject', (request, response) => {
       suggestionSetId: request.params.id,
     })
 
-    response.json(rejectSuggestion(payload))
+    const result = rejectSuggestion(payload)
+
+    updateSuggestionSetStatus(result.suggestionSetId, 'rejected')
+
+    response.json(result)
   } catch (error) {
     if (error instanceof ZodError) {
       response.status(400).json({
