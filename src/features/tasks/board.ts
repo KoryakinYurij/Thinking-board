@@ -320,6 +320,19 @@ function normalizeTaskPatch(task: Task, updates: TaskPatch): TaskPatch {
 }
 
 function getTaskFamilyIds(tasks: Task[], rootTaskId: string) {
+  const childrenMap = new Map<string, string[]>()
+
+  for (const task of tasks) {
+    if (task.parentTaskId) {
+      let children = childrenMap.get(task.parentTaskId)
+      if (!children) {
+        children = []
+        childrenMap.set(task.parentTaskId, children)
+      }
+      children.push(task.id)
+    }
+  }
+
   const familyIds = new Set<string>()
   const stack = [rootTaskId]
 
@@ -332,9 +345,10 @@ function getTaskFamilyIds(tasks: Task[], rootTaskId: string) {
 
     familyIds.add(currentTaskId)
 
-    for (const childTask of tasks) {
-      if (childTask.parentTaskId === currentTaskId) {
-        stack.push(childTask.id)
+    const children = childrenMap.get(currentTaskId)
+    if (children) {
+      for (const childId of children) {
+        stack.push(childId)
       }
     }
   }
