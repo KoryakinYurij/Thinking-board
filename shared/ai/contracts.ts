@@ -52,6 +52,7 @@ export const expandSuggestionSchema = z
 
 export const expandResponseSchema = z
   .object({
+    suggestionSetId: z.string().min(1),
     suggestion: expandSuggestionSchema,
     model: z.string().min(1),
     responseId: z.string().min(1).nullable(),
@@ -105,6 +106,7 @@ export const decomposeSuggestionSchema = z
 
 export const decomposeResponseSchema = z
   .object({
+    suggestionSetId: z.string().min(1),
     suggestion: decomposeSuggestionSchema,
     model: z.string().min(1),
     responseId: z.string().min(1).nullable(),

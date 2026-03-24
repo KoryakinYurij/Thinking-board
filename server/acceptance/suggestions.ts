@@ -17,12 +17,33 @@ const DECOMPOSITION_START_MARKER = '--- AI decomposition ---'
 const DECOMPOSITION_END_MARKER = '--- end AI decomposition ---'
 const SUBTASK_POSITION_STEP = 1000
 
+const EXPANSION_ACCEPTABLE_FIELDS = [
+  'normalized_title',
+  'description_notes',
+] as const
+
+const DECOMPOSITION_ACCEPTABLE_FIELDS = [
+  'subtasks',
+  'next_actions_notes',
+] as const
+
+function isAllAccepted(
+  acceptedFields: readonly string[],
+  acceptableFields: readonly string[],
+): boolean {
+  return acceptableFields.every((field) => acceptedFields.includes(field))
+}
+
 export function acceptExpansionSuggestion(
   input: AcceptExpansionSuggestionRequest,
   appliedAt = new Date().toISOString(),
 ): AcceptExpansionSuggestionResponse {
-  const reviewStatus =
-    input.acceptedFields.length === 2 ? 'accepted' : 'partially_accepted'
+  const reviewStatus = isAllAccepted(
+    input.acceptedFields,
+    EXPANSION_ACCEPTABLE_FIELDS,
+  )
+    ? 'accepted'
+    : 'partially_accepted'
 
   if (input.sourceEntityType === 'task') {
     return {
@@ -73,8 +94,12 @@ export function acceptDecompositionSuggestion(
   input: AcceptDecompositionSuggestionRequest,
   appliedAt = new Date().toISOString(),
 ): AcceptDecompositionSuggestionResponse {
-  const reviewStatus =
-    input.acceptedFields.length === 2 ? 'accepted' : 'partially_accepted'
+  const reviewStatus = isAllAccepted(
+    input.acceptedFields,
+    DECOMPOSITION_ACCEPTABLE_FIELDS,
+  )
+    ? 'accepted'
+    : 'partially_accepted'
 
   return {
     suggestionSetId: input.suggestionSetId,

@@ -8,7 +8,10 @@ import { getLlmClient } from './client'
 import { expandSuggestionTextFormat } from './schemas'
 import { validateLlmOutput } from './validation'
 
-export async function generateExpansionSuggestion(input: ExpandRequest) {
+export async function generateExpansionSuggestion(
+  input: ExpandRequest,
+  suggestionSetId: string,
+) {
   const request = expandRequestSchema.parse(input)
   const client = getLlmClient()
 
@@ -26,6 +29,7 @@ export async function generateExpansionSuggestion(input: ExpandRequest) {
   )
 
   return expandResponseSchema.parse({
+    suggestionSetId,
     suggestion,
     model: response.model,
     responseId: response.responseId,
