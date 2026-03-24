@@ -23,7 +23,7 @@ import type {
 } from '../features/tasks/model'
 
 type TaskDetailProps = {
-  viewMode: 'board' | 'archive'
+  viewMode: 'board' | 'archive' | 'focus'
   selectedTask: Task | null
   expansionSuggestionSet: ExpansionSuggestionSet | null
   decompositionSuggestionSet: DecompositionSuggestionSet | null
@@ -468,24 +468,19 @@ function EditableSubtaskCard({
       <div className="subtask-card-header">
         <div className="subtask-card-kicker">
           <p className="eyebrow">Subtask {index + 1}</p>
-          <h4>{subtask.title}</h4>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={subtask.status === 'done'}
+              onChange={(e) => {
+                onSetTaskStatus(subtask.id, e.target.checked ? 'done' : 'todo')
+              }}
+            />
+            <h4 style={{ textDecoration: subtask.status === 'done' ? 'line-through' : 'none' }}>
+              {subtask.title}
+            </h4>
+          </div>
         </div>
-
-        <label className="subtask-status-field">
-          <span>Status</span>
-          <select
-            value={subtask.status}
-            onChange={(event) =>
-              onSetTaskStatus(subtask.id, event.target.value as TaskStatus)
-            }
-          >
-            {STATUS_ORDER.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_META[status].label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
 
       <div className="subtask-grid">
@@ -537,28 +532,6 @@ function EditableSubtaskCard({
       </div>
 
       <div className="subtask-actions">
-        <button
-          type="button"
-          onClick={() => onSetTaskStatus(subtask.id, 'todo')}
-          disabled={subtask.status === 'todo'}
-        >
-          Set open
-        </button>
-        <button
-          type="button"
-          onClick={() => onSetTaskStatus(subtask.id, 'in_progress')}
-          disabled={subtask.status === 'in_progress'}
-        >
-          Start
-        </button>
-        <button
-          type="button"
-          className="primary-button"
-          onClick={() => onSetTaskStatus(subtask.id, 'done')}
-          disabled={subtask.status === 'done'}
-        >
-          Done
-        </button>
         <button
           type="button"
           className="danger-button"

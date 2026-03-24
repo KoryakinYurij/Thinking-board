@@ -13,14 +13,14 @@ type BoardFiltersProps = {
   search: string
   focusStatus: TaskStatusFilter
   priorityFilter: TaskPriorityFilter
-  workspaceView: 'inbox' | 'board' | 'archive'
+  workspaceView: 'inbox' | 'board' | 'archive' | 'focus'
   inboxCount: number
   archivedCount: number
   dragDisabled: boolean
   onSearchChange: (value: string) => void
   onFocusStatusChange: (value: TaskStatusFilter) => void
   onPriorityFilterChange: (value: TaskPriorityFilter) => void
-  onWorkspaceViewChange: (value: 'inbox' | 'board' | 'archive') => void
+  onWorkspaceViewChange: (value: 'inbox' | 'board' | 'archive' | 'focus') => void
 }
 
 function BoardFilters({
@@ -43,9 +43,11 @@ function BoardFilters({
         <h2>
           {workspaceView === 'inbox'
             ? 'Review intake without pretending it is already committed work.'
-            : workspaceView === 'board'
-              ? 'Filter the projection without rewriting the truth.'
-              : 'Review archived work without putting it back by accident.'}
+            : workspaceView === 'focus'
+              ? 'Focus on execution and nothing else.'
+              : workspaceView === 'board'
+                ? 'Filter the projection without rewriting the truth.'
+                : 'Review archived work without putting it back by accident.'}
         </h2>
       </div>
 
@@ -71,6 +73,13 @@ function BoardFilters({
         >
           Archive ({archivedCount})
         </button>
+        <button
+          type="button"
+          className={workspaceView === 'focus' ? 'is-active' : ''}
+          onClick={() => onWorkspaceViewChange('focus')}
+        >
+          Focus
+        </button>
       </div>
 
       <div className="toolbar-grid">
@@ -87,7 +96,7 @@ function BoardFilters({
           <span>Status focus</span>
           <select
             value={focusStatus}
-            disabled={workspaceView === 'inbox'}
+            disabled={workspaceView === 'inbox' || workspaceView === 'focus'}
             onChange={(event) =>
               onFocusStatusChange(event.target.value as TaskStatusFilter)
             }
@@ -105,7 +114,7 @@ function BoardFilters({
           <span>Priority</span>
           <select
             value={priorityFilter}
-            disabled={workspaceView === 'inbox'}
+            disabled={workspaceView === 'inbox' || workspaceView === 'focus'}
             onChange={(event) =>
               onPriorityFilterChange(event.target.value as TaskPriorityFilter)
             }
@@ -126,6 +135,8 @@ function BoardFilters({
             ? 'Capture items stay outside execution status until you commit them into tasks.'
             : workspaceView === 'archive'
             ? 'Restore sends a task back to the end of its current status lane.'
+            : workspaceView === 'focus'
+            ? 'In Focus view, you concentrate on the active execution surfaces. Distractions are minimized.'
             : dragDisabled
               ? 'Drag is paused while filters are active so order never becomes ambiguous.'
               : 'Drag is available because you are looking at the full board order.'}
