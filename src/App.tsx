@@ -171,13 +171,18 @@ function App() {
     const taskResult = saveTasks(nextData.tasks)
     const captureResult = saveCaptureItems(nextData.captureItems)
     const suggestionResult = saveSuggestionSets(nextData.suggestionSets)
+    const failures = [
+      !taskResult.ok ? 'tasks' : null,
+      !captureResult.ok ? 'captures' : null,
+      !suggestionResult.ok ? 'suggestions' : null,
+    ].filter(Boolean)
 
     return {
       ...nextData,
       persistenceError:
-        taskResult.ok && captureResult.ok && suggestionResult.ok
+        failures.length === 0
           ? null
-          : 'Changes are still visible in this tab, but local storage could not be updated.',
+          : `Could not save ${failures.join(', ')} to local storage. Your changes are visible here, but will be lost if you close or refresh this tab.`,
     }
   }
 

@@ -182,6 +182,23 @@ function TaskCard({
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           onSelectTask(task.id)
+          return
+        }
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault()
+          const card = event.currentTarget
+          const list = card.closest('.column-list')
+          if (!list) return
+          const cards = Array.from(
+            list.querySelectorAll<HTMLElement>('.task-card[tabindex]'),
+          )
+          const currentIdx = cards.indexOf(card)
+          const nextIdx =
+            event.key === 'ArrowDown'
+              ? Math.min(currentIdx + 1, cards.length - 1)
+              : Math.max(currentIdx - 1, 0)
+          cards[nextIdx]?.focus()
         }
       }}
     >

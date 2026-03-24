@@ -28,6 +28,33 @@ describe('task storage', () => {
     expect(loadTasks(storage)).toEqual([])
   })
 
+  it('returns empty when localStorage has no entry for the key', () => {
+    const storage = {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+    }
+
+    expect(loadTasks(storage)).toEqual([])
+  })
+
+  it('returns empty when localStorage contains corrupt data', () => {
+    const storage = {
+      getItem: vi.fn(() => 'not-json{{}'),
+      setItem: vi.fn(),
+    }
+
+    expect(loadTasks(storage)).toEqual([])
+  })
+
+  it('returns empty when stored value is not an array', () => {
+    const storage = {
+      getItem: vi.fn(() => '{"title":"lone task"}'),
+      setItem: vi.fn(),
+    }
+
+    expect(loadTasks(storage)).toEqual([])
+  })
+
   it('returns an error result instead of throwing on failed writes', () => {
     const storage = {
       getItem: vi.fn(),

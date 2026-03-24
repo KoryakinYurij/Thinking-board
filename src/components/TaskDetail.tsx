@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import TaskDecompositionPanel from './TaskDecompositionPanel'
 import TaskExpansionPanel from './TaskExpansionPanel'
 import type {
@@ -332,14 +332,28 @@ type EditableTitleFieldProps = {
 
 function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
   const [titleDraft, setTitleDraft] = useState(task.title)
+  const [titleError, setTitleError] = useState<string | null>(null)
+  const revertedRef = useRef(false)
 
   function commitTitleDraft() {
+    if (revertedRef.current) {
+      revertedRef.current = false
+      return
+    }
+
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
-      setTitleDraft(task.title)
+      if (!titleError) {
+        setTitleError('Title cannot be empty.')
+      } else {
+        setTitleDraft(task.title)
+        setTitleError(null)
+      }
       return
     }
+
+    setTitleError(null)
 
     if (trimmedTitle !== task.title) {
       onPatchTask(task.id, { title: trimmedTitle })
@@ -348,20 +362,39 @@ function EditableTitleField({ task, onPatchTask }: EditableTitleFieldProps) {
     setTitleDraft(trimmedTitle)
   }
 
+  function revertTitleDraft() {
+    revertedRef.current = true
+    setTitleDraft(task.title)
+    setTitleError(null)
+  }
+
   return (
     <label>
       <span>Title</span>
       <input
         value={titleDraft}
         maxLength={120}
-        onChange={(event) => setTitleDraft(event.target.value)}
+        aria-invalid={titleError ? true : undefined}
+        onChange={(event) => {
+          setTitleDraft(event.target.value)
+          if (titleError) {
+            setTitleError(null)
+          }
+        }}
         onBlur={commitTitleDraft}
         onKeyDown={(event) => {
           if (event.key === 'Enter') {
             event.currentTarget.blur()
           }
+          if (event.key === 'Escape') {
+            revertTitleDraft()
+            event.currentTarget.blur()
+          }
         }}
       />
+      {titleError ? (
+        <span className="field-error" role="alert">{titleError}</span>
+      ) : null}
     </label>
   )
 }
@@ -382,22 +415,42 @@ function EditableSubtaskCard({
   onDeleteTask,
 }: EditableSubtaskCardProps) {
   const [titleDraft, setTitleDraft] = useState(subtask.title)
+  const [titleError, setTitleError] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState(subtask.description)
+  const revertedRef = useRef(false)
   const dueState = getDueState(subtask.dueAt, subtask.status === 'done')
 
   function commitTitleDraft() {
+    if (revertedRef.current) {
+      revertedRef.current = false
+      return
+    }
+
     const trimmedTitle = titleDraft.trim()
 
     if (!trimmedTitle) {
-      setTitleDraft(subtask.title)
+      if (!titleError) {
+        setTitleError('Title cannot be empty.')
+      } else {
+        setTitleDraft(subtask.title)
+        setTitleError(null)
+      }
       return
     }
+
+    setTitleError(null)
 
     if (trimmedTitle !== subtask.title) {
       onPatchTask(subtask.id, { title: trimmedTitle })
     }
 
     setTitleDraft(trimmedTitle)
+  }
+
+  function revertTitleDraft() {
+    revertedRef.current = true
+    setTitleDraft(subtask.title)
+    setTitleError(null)
   }
 
   function commitNotesDraft() {
@@ -441,14 +494,27 @@ function EditableSubtaskCard({
           <input
             value={titleDraft}
             maxLength={120}
-            onChange={(event) => setTitleDraft(event.target.value)}
+            aria-invalid={titleError ? true : undefined}
+            onChange={(event) => {
+              setTitleDraft(event.target.value)
+              if (titleError) {
+                setTitleError(null)
+              }
+            }}
             onBlur={commitTitleDraft}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 event.currentTarget.blur()
               }
+              if (event.key === 'Escape') {
+                revertTitleDraft()
+                event.currentTarget.blur()
+              }
             }}
           />
+          {titleError ? (
+            <span className="field-error" role="alert">{titleError}</span>
+          ) : null}
         </label>
 
         <label className="subtask-notes-field">

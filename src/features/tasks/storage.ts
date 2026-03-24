@@ -1,5 +1,4 @@
 import { sortTasks } from './board'
-import { seedTasks } from './seed'
 import type { Task } from './model'
 
 export const STORAGE_KEY = 'todo-kanban-mvp-v1'
@@ -15,18 +14,18 @@ export function loadTasks(storage: StorageLike = window.localStorage) {
     const raw = storage.getItem(STORAGE_KEY)
 
     if (!raw) {
-      return sortTasks(seedTasks())
+      return []
     }
 
     const parsed = JSON.parse(raw) as Task[]
 
     if (!Array.isArray(parsed)) {
-      return sortTasks(seedTasks())
+      return []
     }
 
     return sortTasks(parsed)
   } catch {
-    return sortTasks(seedTasks())
+    return []
   }
 }
 
