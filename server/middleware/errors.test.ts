@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Request, Response } from 'express'
-import { ZodError } from 'zod'
+import type { Request, Response } from 'express'
+import { z, ZodError } from 'zod'
 import { errorHandler } from './errors'
 import { LlmParseError, LlmValidationError } from '../llm'
 
@@ -44,7 +44,7 @@ describe('errorHandler', () => {
 
   it('handles LlmParseError with 502', () => {
     const res = mockRes()
-    const error = new LlmParseError('boom')
+    const error = new LlmParseError('boom', 'not-json')
 
     errorHandler(error, { path: '/api/ai/expand' } as Request, res as Response, vi.fn())
     expect(res.status).toHaveBeenCalledWith(502)
@@ -56,7 +56,8 @@ describe('errorHandler', () => {
 
   it('handles LlmValidationError with 502 and details', () => {
     const res = mockRes()
-    const zodError = new ZodError([{ code: 'custom', path: ['test'], message: 'fail' }])
+    const parsed = z.object({ test: z.string() }).safeParse({})
+    const zodError = parsed.success ? new ZodError([]) : parsed.error
     const error = new LlmValidationError('validation failed', zodError)
 
     errorHandler(error, { path: '/api/ai/expand' } as Request, res as Response, vi.fn())

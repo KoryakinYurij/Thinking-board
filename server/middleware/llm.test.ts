@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import { checkLlmConfigured } from './llm'
 import * as llm from '../llm'
 
