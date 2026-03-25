@@ -53,12 +53,30 @@ export function getResolvedSelectedTaskId(
 }
 
 export function getTaskStats(tasks: Task[]) {
-  const openCount = tasks.filter((task) => task.status !== 'done').length
-  const doneCount = tasks.filter((task) => task.status === 'done').length
-  const urgentCount = tasks.filter((task) =>
-    getDueState(task.dueAt, task.status === 'done').isUrgent,
-  ).length
-  const archivedCount = tasks.filter((task) => task.archivedAt).length
+  const now = new Date()
+  let openCount = 0
+  let doneCount = 0
+  let urgentCount = 0
+  let archivedCount = 0
+
+  for (let i = 0, len = tasks.length; i < len; i++) {
+    const task = tasks[i]
+    const isDone = task.status === 'done'
+
+    if (isDone) {
+      doneCount++
+    } else {
+      openCount++
+    }
+
+    if (getDueState(task.dueAt, isDone, now).isUrgent) {
+      urgentCount++
+    }
+
+    if (task.archivedAt) {
+      archivedCount++
+    }
+  }
 
   return {
     openCount,
