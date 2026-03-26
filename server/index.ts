@@ -15,6 +15,4 @@ app.get('/api/health', (_request, response) => {
 
 app.use('/api/ai', aiRouter)
 
-app.listen(port, () => {
-  console.log(`AI server listening on http://localhost:${port}`)
-})
+app.listen(port)
